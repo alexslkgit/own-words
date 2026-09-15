@@ -1,0 +1,256 @@
+{
+  "key": "claude-code-30",
+  "round": 1,
+  "title": "Claude Code in 30 questions",
+  "copyPrefix": "Claude Code in 30 questions",
+  "gate": true,
+  "from": [
+    { "round": 1, "t": "This deck exists to give a working mental model of Claude Code as a tool, not a memorized list of commands." }
+  ],
+  "marks": [
+    { "id": "know", "label": "I knew it", "side": "done", "key": "1" },
+    { "id": "again", "label": "see again", "side": "mine", "key": "2" }
+  ],
+  "blocks": [
+    {
+      "n": 1,
+      "t": "Sessions and context",
+      "q": [
+        {
+          "id": "cc-session",
+          "q": "What is a session in Claude Code?",
+          "tag": "one session",
+          "a": "A session is one continuous run of Claude Code: from the moment you start it in a project until you end it or clear it, everything you and Claude exchange — messages, file reads, command output — sits in that session's context. **The context is what Claude actually sees on every turn**, so a long session carries its whole history forward each time, not just the latest message.\n\nStarting Claude Code again in the same folder can resume the most recent session, which is what makes it different from a single request-response call: the working state persists until you deliberately end it. _A session is scoped to a project directory, not to your terminal window._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "clear-vs-compact",
+          "q": "What is the difference between /clear and /compact?",
+          "tag": "two resets",
+          "a": "**`/clear` starts the session with an empty context**: nothing from before is visible to Claude any more, which is the right move when switching to an unrelated task. But the previous conversation isn't thrown away — Claude Code saves it, and you can pick it back up with `/resume`, or from the rewind menu in the same process. **`/compact` keeps working on the same task** instead, asking Claude to summarize everything so far so the gist survives while the token cost of carrying it forward drops.\n\nThe trade-off is about what stays in front of Claude, not what's recoverable: a clear removes the old conversation from context but leaves it resumable, while a compact keeps the thread live but replaces the transcript with a summary, so some specifics can get smoothed over.",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "why-context-grows",
+          "q": "Why does the cost of a session keep growing as it goes on?",
+          "tag": "compounding cost",
+          "a": "Every message, file Claude reads, and command output it runs gets added to the context, and **the whole context is resent to the model on every single turn**, not just the new part. A file read once early in a session is still being paid for on message fifty, because it's still sitting in the history that gets sent along.\n\nThat's why a large file read straight into the main conversation is expensive in a way that isn't obvious at first: the one-time cost of reading it becomes a recurring cost for the rest of the session. _Delegating bulky reads to a subagent, which has its own separate context, is one way around this — its output dies with it instead of sitting in yours._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "claude-md",
+          "q": "What is a CLAUDE.md file for?",
+          "tag": "standing instructions",
+          "a": "**CLAUDE.md is a file Claude Code reads automatically at the start of a session** and treats as standing instructions for that project — conventions, folder layout, commands to run, things never to do. It can exist at more than one level: a project's own CLAUDE.md sits at the repo root, and a personal one can live outside any repo and apply to every project you work in.\n\nBecause it loads on every session rather than being retyped, it's the place for anything that should be true every time — not a one-off instruction for the current task, which belongs in the conversation itself. _A stale rule in it is worse than no rule, since Claude will follow it as written._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "memory-persistence",
+          "q": "Does Claude Code remember anything between sessions?",
+          "tag": "across a /clear",
+          "a": "Yes, in more than one way. Session transcripts are saved continuously to disk as JSONL files, so a conversation survives `/clear` or the window closing and can be reopened with `/resume` or `claude --continue`. **Claude Code also has auto memory, on by default**: as it works, Claude writes its own notes — about your preferences, corrections, and project context — into `~/.claude/projects/<project>/memory/`, and every session loads the first 200 lines or 25KB of that back in, alongside any CLAUDE.md.\n\nCLAUDE.md is the other half: instructions you write yourself rather than notes Claude writes on its own, also loaded every session. _Auto memory can be turned off per project or globally through `/memory` if you don't want Claude taking its own notes._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "context-window-limit",
+          "q": "What happens when a session's context gets close to full?",
+          "tag": "running out of room",
+          "a": "A full window doesn't truncate history or end the session. **Claude Code auto-compacts as the limit approaches**: it replaces the older part of the conversation with a summary before the window actually runs out, so the session keeps going instead of losing the ability to respond. You can also trigger this yourself at any point with `/compact`, optionally with instructions about what to keep.\n\nHow early the automatic pass fires is tunable: `/autocompact` with a token count, like `/autocompact 500k`, sets how full the window gets before the automatic compaction runs. Manually compacting earlier, with your own focus instructions, keeps more of what you choose than what the automatic pass guesses is important. _`/context` shows a live breakdown of what's currently using the window._",
+          "reply": { "mode": "text" }
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "t": "Tools and permissions",
+      "q": [
+        {
+          "id": "read-edit-bash",
+          "q": "What do the Read, Edit, and Bash tools each actually do?",
+          "tag": "the three basics",
+          "a": "**Read** returns a file's contents without changing anything — plain text, and it can also handle images and PDFs. Edit makes a targeted change inside an existing file by replacing one exact piece of text with another, matched exactly. A separate Write tool exists for creating a new file or replacing one wholesale.\n\nRead-before-edit is no longer absolute: older models like Opus 4.6 and Haiku 4.5 always require the read first, but newer models can edit a file they haven't read this conversation when reading it wouldn't need a permission prompt. **Viewing a file through Bash also counts as having read it** — `cat`, `head`, `tail`, or `grep` on a single file satisfy the same check. Bash runs a shell command and returns its output, which is how Claude runs tests or drives git.",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "permission-modes",
+          "q": "What are the different permission modes, and what changes between them?",
+          "tag": "how much to ask",
+          "a": "There are six: **`default` (Manual)** asks before anything but reads; **`acceptEdits`** auto-approves file edits plus common filesystem commands like `mkdir`, `touch`, `mv`, and `cp`; **`plan`** is read-only exploration before any change; **`auto`** runs everything with a separate classifier model reviewing actions in the background instead of prompting you; **`dontAsk`** allows reads and pre-approved tools but denies anything that would otherwise prompt, for locked-down CI; and **`bypassPermissions`** skips checks entirely, meant only for isolated containers or VMs.\n\n**Auto mode is the built-in starting mode on Pro, Max, and Team plans.** Which mode is right depends on the task and the environment — bypassing checks is reasonable in a disposable sandbox and reckless on a machine with real credentials on it. _Switch modes during a session with Shift+Tab._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "allow-lists",
+          "q": "How do allow lists control what Claude can do without asking?",
+          "tag": "pre-approved actions",
+          "a": "Permission settings actually hold three kinds of rules: **allow, ask, and deny**, and they're evaluated in a fixed order — deny first, then ask, then allow — with the first match deciding the outcome regardless of how specific each rule is. So a broad deny rule like `Bash(aws *)` still blocks a call that also matches a narrower allow rule, and **an allow rule can never carve an exception out of a matching deny rule**.\n\nAn allow list is how a team keeps day-to-day work fast without turning off judgment for everything: narrow, specific rules for the commands that actually get used, like the project's own test command, rather than one blanket switch. _A rule scoped to one exact command is safer than one scoped to all of Bash, because it can't be reused for something else._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "hooks",
+          "q": "What is a hook in Claude Code?",
+          "tag": "code on events",
+          "a": "A hook is something a project configures to run automatically at a specific point in Claude's workflow — before a tool runs, after one finishes, or when a session starts. **A hook isn't limited to a shell command**: Claude Code supports five handler types — command, http, mcp_tool, prompt, and agent — so a hook can shell out, call an HTTP endpoint, invoke an MCP tool, prompt the model, or run an agent.\n\nWhatever form it takes, a hook enforces something outside of Claude's own judgment: it can block a tool call outright, or run a check and report back. A lint check before every commit, or a guard refusing a write outside an approved folder, are both hooks. _A hook only enforces what it's actually wired to catch, not everything an instruction might say._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "why-permissions-matter",
+          "q": "Why does Claude Code ask permission at all, instead of just doing what's asked?",
+          "tag": "sandboxing by design",
+          "a": "Claude Code runs with real access to your files and shell, and a language model can misread an instruction or a file's contents in a way a human wouldn't — so permission prompts exist as a check between deciding to do something and actually doing it. There's no built-in \"force push needs confirmation\" rule specifically; `git push` prompts only because it matches an ask rule you or your organization wrote, the same as any other command.\n\n**No mode auto-approves a fixed set of actions regardless of trust level**, including `bypassPermissions`: a tool matched by an explicit ask rule, the built-in `AskUserQuestion` tool, tools an organization set to `ask`, `rm`/`rmdir` removals targeting a critical path, and reads outside the working directory when that block is turned on. _The prompts that remain are a safety boundary, not a formality to click through._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "edit-vs-write",
+          "q": "Why does Claude Code have both an Edit tool and a Write tool?",
+          "tag": "surgical vs wholesale",
+          "a": "Edit changes one exact piece of text inside a file that already exists, leaving the rest of the file untouched — it's built for a small, precise change and it fails loudly if the text it's looking for isn't there, rather than guessing. **Write replaces a file's entire contents**, which is the right tool for creating something new or for a rewrite so large that patching it piece by piece would be slower and riskier than starting clean.\n\nUsing Write on a file that already has content the author didn't ask to change is a common way to silently lose something — reading the file first, which the tools generally require, is what catches that before it happens.",
+          "reply": { "mode": "text" }
+        }
+      ]
+    },
+    {
+      "n": 3,
+      "t": "Skills and plugins",
+      "q": [
+        {
+          "id": "what-is-a-skill",
+          "q": "What is a skill?",
+          "tag": "on-demand instructions",
+          "a": "A skill is a folder of instructions — and sometimes scripts or reference files alongside them — that loads only when a task actually calls for it, rather than sitting in context for every session regardless of relevance. **The point is keeping the default context small** while still making specialized knowledge available: a skill can be as long and detailed as it needs to be, because it costs nothing until loaded.\n\nBoth invocation routes exist by default: you can type `/skill-name` yourself, and Claude can also load it automatically when the description looks relevant. Two frontmatter fields narrow that: `disable-model-invocation: true` makes a skill manual-only, and **`user-invocable: false` makes it Claude-only**, for background knowledge that isn't a meaningful command to run by hand.",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "skill-md-frontmatter",
+          "q": "What has to be in a SKILL.md file for Claude to find and use it?",
+          "tag": "the skill's own file",
+          "a": "Nothing is strictly required — **every frontmatter field in a SKILL.md file is optional**. If you omit `name`, it defaults to the skill's directory name. `description` is only recommended, not required: leave it out and Claude Code falls back to using the first non-empty line of the markdown body instead.\n\n**That description is still what Claude reads to decide whether the skill is relevant**, so a vague one means a skill that should fire never gets loaded. There's a hard limit worth knowing: the combined `description` and `when_to_use` text is truncated at 1,536 characters in the skill listing, so the key use case should come first. Everything below the frontmatter is the actual instructions. _A skill nobody can find is no different from a skill that doesn't exist._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "plugin-vs-skill",
+          "q": "What's the difference between a plugin and a skill?",
+          "tag": "bundle vs one piece",
+          "a": "A skill is one instruction set for one kind of task. **A plugin is a packaged, installable bundle that can contain several skills at once, along with other pieces** — custom slash commands, subagent definitions, hooks, or configuration for connecting to an external tool — all distributed and installed together as a single unit.\n\nInstalling a plugin is how you get someone else's skills, commands, and hooks into your own setup without copying files by hand or reconstructing them yourself; a skill living loose in a project's own folder, by contrast, is just part of that project and travels with the repo rather than being installed separately. _Not every plugin needs to include a skill, and not every skill needs to ship as part of a plugin._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "marketplaces",
+          "q": "What is a plugin marketplace?",
+          "tag": "where plugins are found",
+          "a": "A marketplace is a catalog — commonly just a git repository with a manifest listing what it offers — that Claude Code can be pointed at to discover and install plugins from, the way a package registry works for a programming language. Anyone can publish one; **it doesn't require the maker of Claude Code to be involved**, which is also why the same caution about installing unfamiliar code applies here as anywhere else.\n\nOnce a marketplace is added, its plugins become visible for browsing and installing without needing to already know the exact repository or file layout behind each one. _An official marketplace exists alongside any number of independent ones._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "installing-a-plugin",
+          "q": "How do you actually install a plugin?",
+          "tag": "getting one running",
+          "a": "Installing a plugin generally means two steps: pointing Claude Code at the marketplace that carries it, if it isn't already known, and then installing the specific plugin by name from that marketplace — either from inside a running session with a slash command, or from outside a session via the command line. Once installed, its skills, commands, and hooks become available the same way as if you'd written them yourself in the project.\n\n**A plugin can be enabled per-project or made available everywhere you use Claude Code**, depending on where it's installed. _The exact commands for this have changed shape across versions, so checking the current docs before typing one from memory is the safer habit._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "project-vs-personal-skills",
+          "q": "Can a skill live outside a specific project?",
+          "tag": "project or personal",
+          "a": "Yes. A skill can be checked into a project's own repository at `.claude/skills/`, in which case it travels with that codebase. A skill can also live at `~/.claude/skills/`, available across every project on that machine — but **this personal location is machine-local, not tied to your account**, and personal skills don't load in Cowork or cloud sessions, which instead load whatever skills you've enabled for your claude.ai account.\n\nOther scopes exist too: an enterprise location deployed via managed settings, a nested `.claude/skills/` in a subdirectory that loads once Claude works on files there, and a directory added with `--add-dir` for that session only. _Where a skill belongs usually comes down to whether the knowledge is about this codebase, this machine, or your account everywhere._",
+          "reply": { "mode": "text" }
+        }
+      ]
+    },
+    {
+      "n": 4,
+      "t": "Subagents and workflows",
+      "q": [
+        {
+          "id": "agent-tool",
+          "q": "What does the Agent tool actually do?",
+          "tag": "spawning a helper",
+          "a": "The Agent tool starts a subagent: a separate instance of Claude, given its own task and context window, that works independently and reports back a result to the session that launched it. **The subagent's entire working process — every file it reads, every command it runs — stays inside its own context** and never joins the parent session's history; only the final answer does. (TaskCreate and TaskList are a separate, unrelated checklist feature, not this tool.)\n\nBy default in an interactive session, **a subagent runs in the background** while you keep working, with a smaller, reduced built-in tool set than a foreground subagent gets. _That's a meaningfully different shape from Claude doing the work itself in the main conversation, where every intermediate step stays in context._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "why-delegate",
+          "q": "Why delegate a task to a subagent instead of just doing it in the main conversation?",
+          "tag": "context isolation",
+          "a": "The main reason is cost, not speed: a subagent's context — the file it read in full, the ten commands it ran while investigating — dies with it when it finishes, while anything done directly in the main session stays in that session's history and gets resent on every later turn. **Delegating is how bulky, one-time work stays out of the context that's paid for repeatedly.**\n\nIt's worth it for context-heavy or genuinely independent work — a big log to search through, an exploratory grep across a large codebase — and not worth it for something quick, where the overhead of describing the task to a subagent costs more than just doing it. _Coordination has a cost too; delegation isn't free, it's a trade._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "model-tiers",
+          "q": "Can different subagents use different models?",
+          "tag": "matching model to task",
+          "a": "Yes, and the model comes from a defined order, checked in this sequence: **the per-invocation `model` parameter comes first**, ahead of the subagent definition's own `model` frontmatter, ahead of the `CLAUDE_CODE_SUBAGENT_MODEL` environment variable, ahead of the main conversation's model as the final fallback. Because the per-invocation parameter wins, the parent session can override the model of a subagent it calls, even when that subagent's definition names a different one.\n\nA project can still define the same role at more than one tier — a cheap, fast model for mechanical work and a stronger one for tasks needing sustained judgment — and rely on that order to pick correctly. The intent is spending more compute only where the task needs it. _A wrong guess is caught by checking the result, not by assuming the tier was right._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "background-tasks",
+          "q": "What is a background task, and why run something that way?",
+          "tag": "not blocking on it",
+          "a": "A command can be launched to run in the background instead of the session waiting on it to finish — useful for anything slow, like a full test suite or a long build, where sitting idle for minutes doesn't add anything. Claude Code runs it asynchronously and returns a background task ID right away, so Claude can respond to new prompts while it continues. **The output lands in a file, which Claude reads back with the Read tool**, and `/tasks` lists what's currently running or has finished.\n\nThis is different from a subagent: a background task is still the same session's own command, just not blocking further work while it runs, whereas a subagent is a separate Claude instance with its own reasoning. _Checking `/tasks` or reading the output file is the pattern here, not a documented completion alert._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "subagent-limitations",
+          "q": "What can't a subagent do that the main session can?",
+          "tag": "boundaries of a subagent",
+          "a": "**A subagent can't ask the user a clarifying question mid-task at all**: the `AskUserQuestion` tool is stripped from every subagent's pool, whether or not it's listed in the subagent's own `tools` field. It runs to completion on the brief it was given and reports back, so ambiguity has to be resolved by the parent before or after, not by the subagent stopping to check.\n\nThe model it runs on isn't fixed by its definition alone, either — a per-invocation `model` parameter from the parent can override the subagent's own frontmatter. Because there's no back-and-forth once a subagent starts, its brief needs to be self-contained: anything it needs to decide correctly has to be in the prompt. _A subagent that comes back saying something surprising is worth a second look before being trusted outright._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "parallel-subagents",
+          "q": "Can more than one subagent run at the same time?",
+          "tag": "running several at once",
+          "a": "Yes — independent pieces of work with no dependency between them can be handed to several subagents at once instead of one after another. **The parent session doesn't block while they run**: subagents report back asynchronously, so each result arrives when that subagent finishes rather than all at once at the end.\n\nThere are limits: by default, spawning past **20 concurrently running subagents fails** until the count drops, and subagents can nest up to **three layers deep** below the main conversation before spawning further ones is withheld. This only makes sense when tasks genuinely don't depend on each other's output; running several against a shared resource — the same file, the same branch — can cause the collision isolation was meant to prevent. _More subagents isn't automatically faster if they serialize on something underneath._",
+          "reply": { "mode": "text" }
+        }
+      ]
+    },
+    {
+      "n": 5,
+      "t": "Working habits",
+      "q": [
+        {
+          "id": "plan-mode",
+          "q": "What does a planning mode buy you before Claude starts making changes?",
+          "tag": "look before editing",
+          "a": "A planning mode has Claude read the relevant code and lay out an approach — what it intends to change and why — without actually editing anything or running commands that would, so there's a point to review and correct the plan before any of it becomes real changes to files. **It trades a short pause for the ability to catch a wrong approach while it's still just a description**, rather than after several files have already been touched.\n\nThis matters most on a task with real ambiguity in how to do it, where the cost of doing the wrong thing well is higher than the cost of a short review. _A trivial, well-specified task doesn't need this step — the pause is worth it in proportion to how much could go wrong._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "commits",
+          "q": "Does Claude Code commit changes on its own?",
+          "tag": "who presses commit",
+          "a": "By default, Claude Code stages and writes a commit only when it's actually asked to — it doesn't commit on its own initiative just because a change looks finished. **Reviewing what actually got staged before committing is Claude's own responsibility too**: a broad add can pull in a file that wasn't meant to be part of that change, especially in a working tree shared with someone else's uncommitted work.\n\nSome projects go further and have the human commit personally, treating Claude's output as a diff to review first rather than something committed straight away. _Which convention applies is a project decision, not something Claude assumes._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "tests-before-trusting",
+          "q": "Is a passing test suite proof that a change works?",
+          "tag": "green isn't done",
+          "a": "A passing suite means the tests that exist didn't catch a problem — it says nothing about behavior the suite never exercised, and a test file can exist, look correct, and simply never run as part of the suite at all. **The only way to be sure a test is actually testing something is to see it fail on the broken version first**, then pass once the fix is in; a test that was never red proves nothing.\n\nFor anything user-facing, actually driving the flow — running the app, clicking through the change — catches a class of problem a green suite structurally cannot see, because it was never asked the question. _Trusting a test run without reading what it actually reported is the same mistake in a smaller size._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "reading-logs",
+          "q": "Why read the actual output of a command instead of trusting a summary of it?",
+          "tag": "read the output itself",
+          "a": "A build or test run can fail for a reason that only shows up in the raw output — a warning buried above the final error, a stack trace pointing at a different file than expected — and a paraphrased summary can miss exactly the detail that explains what actually went wrong. **Reading the log itself, not a guess about what it probably says, is what turns a mysterious failure into a fixable one.**\n\nThe same applies to runtime behavior: a live log filtered to the right process can settle a question that pure reasoning about the code cannot, because it shows what actually executed rather than what should have. _A confident explanation that was never checked against the actual output has a real chance of being wrong._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "new-session",
+          "q": "When is it better to start a brand-new session instead of continuing the current one?",
+          "tag": "starting fresh",
+          "a": "A session that's grown long carries its entire history forward on every turn, so once the current task is genuinely done, starting a new session for the next one is usually cheaper than compacting a large context down and continuing — a fresh session has no unrelated history to pay for at all. **The signal to switch is a change in task, not a fixed message count**: an unrelated piece of work benefits from a clean context even if the current session is still short.\n\nA long session on the same ongoing task is different — compacting to keep the thread alive can be the better trade there, since the continuity has value a new session would have to rebuild. _There's no single rule; the question is always what the next message actually needs to see._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "clarify-vs-act",
+          "q": "When should Claude stop and ask instead of just proceeding?",
+          "tag": "asking vs deciding",
+          "a": "The built-in mechanism for this is the **`AskUserQuestion` tool**: a multiple-choice prompt with an \"Other\" row for anything not listed, rather than an open-ended question typed into the conversation. The reasonable default is still to make the sensible call and keep working — most of what looks like a fork in the road has an obvious right answer.\n\n**Auto mode specifically nudges Claude to keep working without stopping for clarifying questions**, though Claude still asks when the prompt or an active skill relies on it. The exception worth stopping for is a genuine unknown only the user can resolve: a fact nothing in the repo can answer, or a choice costly enough to get wrong. _Asking about something checkable in five minutes is the more common mistake than asking too little._",
+          "reply": { "mode": "text" }
+        }
+      ]
+    }
+  ]
+}

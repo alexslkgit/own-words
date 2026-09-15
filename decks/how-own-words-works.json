@@ -1,0 +1,84 @@
+{
+  "key": "how-own-words-works",
+  "round": 1,
+  "title": "How own-words works",
+  "copyPrefix": "How own-words works",
+  "gate": true,
+  "from": [
+    { "round": 1, "t": "This deck explains the tool through the same loop the tool itself uses, so working through it once should also teach you how to use own-words." }
+  ],
+  "marks": [
+    { "id": "know", "label": "I knew it", "side": "done", "key": "1" },
+    { "id": "again", "label": "see again", "side": "mine", "key": "2" }
+  ],
+  "blocks": [
+    {
+      "n": 1,
+      "t": "The loop",
+      "q": [
+        {
+          "id": "answer-first",
+          "q": "Why does the tool make you answer before showing the prepared answer?",
+          "tag": "answer first",
+          "a": "**own-words** is named after the rule it enforces: you write your own answer before the prepared one appears. The prepared answer, and any notes above it, stay behind a gate until you either type a reply or tell the card you don't know it.\n\nThe reason is that reading a good answer feels like knowing it, while writing your own first exposes exactly where the gap is. **Retrieval, not recognition** is what the gate is protecting. _Skipping straight to the answer is still possible — the \"don't know, show it\" option is right there — but it is a deliberate opt-out, not the default path._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "the-gate",
+          "q": "What is the gate, and what exactly does it hide?",
+          "tag": "behind the gate",
+          "a": "The gate is what keeps a card's prepared answer closed until you have answered it yourself. A card can also carry a second block above the answer — notes answering questions you asked about it in an earlier round — and the gate hides that too, since half of it would give the answer away on its own.\n\n**Passing the gate is per card, not per deck**: answering one card opens only that card, and the choice sticks — it is not asked again on a later visit. A deck can turn the gate off entirely, in which case every prepared answer sits open from the first look, but the two decks here both keep it on.",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "the-marks",
+          "q": "What do the two marks under a card mean?",
+          "tag": "the two marks",
+          "a": "Every card carries two marks, and they are the whole of what the tool records about how you did. **\"I knew it\"** closes the card — it will not come back on a later pass through the deck. **\"see again\"** puts it back in the pile for another round, the way a paper flash card would go back in the box.\n\nNeither mark grades your typed answer for correctness; nothing in the tool checks that. You judge yourself, against the prepared answer now sitting beside your own words, and the mark just records which pile the card belongs to next time. _There is no partial credit and no streak counter — only knew it or see again._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "copy-button",
+          "q": "What does the copy button send back, and to whom?",
+          "tag": "sending back",
+          "a": "The copy button builds a plain-text form out of everything you actually answered in this sitting — never the prepared answers, never the whole deck — and puts it on your clipboard. It lists each card you touched with your own wording underneath it, tags on any you marked, and a short count at the top: how many you answered, how many are new since the last time you sent, how many questions you left open.\n\n**You paste that text back into the chat with whoever is writing the deck** — your own Claude or ChatGPT session — so the next round can respond to what you actually wrote, not guess at it. A card you typed into but never finished still goes out, marked as a draft, rather than silently vanishing.",
+          "reply": { "mode": "text" }
+        }
+      ]
+    },
+    {
+      "n": 2,
+      "t": "Getting decks",
+      "q": [
+        {
+          "id": "paste-json",
+          "q": "How do you load a deck if someone hands you a JSON file?",
+          "tag": "paste to load",
+          "a": "The landing page has a **paste-JSON entry**: you paste the deck's JSON text in, and the page builds the cards from it right there, in your browser, with no upload and no account. This is the same JSON format these two decks are written in — the fields the tool reads are things like `key`, `title`, `blocks`, and the cards inside them.\n\nA card the tool can't use — no id, no question, or an id repeated from an earlier card — is dropped rather than shown broken, and the page says how many loaded and how many were skipped. _If a deck loads with zero cards, the JSON itself is the thing to check first._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "deck-link",
+          "q": "How does a link with a deck built into it work?",
+          "tag": "the link loader",
+          "a": "A deck can also travel as a single URL: the JSON is compressed and packed into the link's own hash — the part after `#` — so the page reads the deck straight out of the address bar with **no server involved and nothing uploaded**. That's how a tool built to hand you a deck, like a connector that runs inside Claude, gives you something you can open directly.\n\nBecause the deck lives in the hash, the link can get long for a big deck, but it needs nothing else to work: no account, no lookup, no stored copy anywhere but your own browser once you open it. _Bookmarking that link is the same as saving the deck._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "ask-claude",
+          "q": "How do you get your own Claude or ChatGPT to build you a deck?",
+          "tag": "asking your assistant",
+          "a": "The site carries a **ready-made prompt you copy and hand to your own Claude or ChatGPT session**, describing the JSON shape a deck has to follow — the field names, the answer markup, the rule that every card needs a unique id. Your assistant writes the deck from whatever you're studying, and you load the result back in either by pasting the JSON or, if your assistant can produce a link, by opening that.\n\nNothing about this depends on which assistant you use or on this being one company's product specifically: the prompt only asks for a plain JSON file in a documented shape, so any capable model can write one. _You are the one deciding what goes in the deck — the tool only plays it back to you._",
+          "reply": { "mode": "text" }
+        },
+        {
+          "id": "stays-local",
+          "q": "What stays in your browser, and what never leaves it?",
+          "tag": "what leaves, what doesn't",
+          "a": "Everything you type — your answers, drafts, marks, and any per-round notes — is written to your browser's own local storage, keyed to that deck, and is never sent anywhere by the page itself. Closing the tab doesn't lose it; opening the same deck later on the same browser picks up where you left off.\n\nThe only thing that ever leaves is what you deliberately copy: pressing the copy button builds the plain-text form described earlier and puts it on your clipboard, and only your own act of pasting it into a chat sends it anywhere. **Nothing is uploaded, synced, or stored on a server** — a different browser, or a cleared one, starts that deck over from zero.",
+          "reply": { "mode": "text" }
+        }
+      ]
+    }
+  ]
+}

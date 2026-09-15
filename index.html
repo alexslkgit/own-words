@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>own-words</title>
+<meta name="description" content="Answer in your own words first. Then see the prepared answer and mark whether you knew it.">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400&display=swap">
+<link rel="stylesheet" href="core/shell.css">
+<link rel="stylesheet" href="landing.css">
+<body>
+<main class="wrap">
+
+  <h1>own-words</h1>
+  <p class="lede">Answer in your own words first. Then see the prepared answer and mark whether you knew it.</p>
+
+  <section>
+    <h2>Open a deck</h2>
+    <ul class="decks">
+      <li><a data-deck="how-own-words-works" href="decks/how-own-words-works.json"><span class="name">How own-words works</span><span class="sub">8 cards, on the tool itself</span></a></li>
+      <li><a data-deck="claude-code-in-30-questions" href="decks/claude-code-in-30-questions.json"><span class="name">Claude Code in 30 questions</span><span class="sub">30 cards, on the tool and how to work with it</span></a></li>
+    </ul>
+    <p class="said" id="demo-said"></p>
+  </section>
+
+  <section>
+    <h2>Paste a deck</h2>
+    <textarea id="paste" spellcheck="false" placeholder="The deck JSON, or the window.DECK = {...}; form."></textarea>
+    <div class="row">
+      <button type="button" id="paste-open">Open</button>
+      <span class="said" id="paste-said"></span>
+    </div>
+    <p class="quiet">Nothing is uploaded. The deck is kept in this browser and packed into the link.</p>
+  </section>
+
+  <section>
+    <h2>Copy the prompt</h2>
+    <p class="quiet lead">Hand this to any assistant, name your topic, and paste the JSON it replies with into the box above.</p>
+    <textarea id="prompt" readonly spellcheck="false">
+You are writing a study deck for own-words. I give you a topic; you reply with one JSON file the site can open.
+
+TOPIC: (replace this line with the topic)
+
+The shape:
+
+{
+  "key": "short-stable-id",
+  "round": 1,
+  "title": "What the deck is about",
+  "copyPrefix": "Short name",
+  "gate": true,
+  "from": [{ "round": 1, "t": "One sentence on what this round is for." }],
+  "marks": [
+    { "id": "know",  "label": "I knew it", "side": "done", "key": "1" },
+    { "id": "again", "label": "see again", "side": "mine", "key": "2" }
+  ],
+  "blocks": [
+    { "n": 1, "t": "The name of this group of cards",
+      "q": [
+        { "id": "unique-id",
+          "q": "The question, asked in one sentence.",
+          "tag": "three or four words naming what the card is about",
+          "a": "The prepared answer.",
+          "reply": { "mode": "text" } }
+      ] }
+  ]
+}
+
+The rules:
+
+- "key" is the deck's bucket in the reader's browser: lowercase, hyphenated, and never reused for a different deck.
+- Every card needs a unique "id" and a "q". A card with no id, no question, or an id already used is dropped rather than shown broken.
+- "a" is the prepared answer, which stays hidden until the reader has answered. 60 to 140 words, two or three short paragraphs.
+- One idea per card. If an answer needs an "and also", that is a second card.
+- "**phrase**" marks the phrase that carries the card, the one still worth having in a week. One per answer, two at most.
+- "_phrase_" marks an aside, the part the reader may skip.
+- A blank line inside "a" is a paragraph break. Apart from that and the three blocks below, nothing is markup: no lists, no code fences, no HTML.
+- "tag" is the short line printed above the answer, not a category.
+- Group the cards into blocks of four to eight, "n" counting up from 1, "t" naming the group.
+- Twenty to thirty cards is a deck worth one sitting. Leave "round" at 1.
+- Ask for an explanation, not for a word: "why does X happen" beats "what is X".
+- "reply": { "mode": "text" } on every card, unless a card is there to be read and not answered, which takes { "mode": "none" }.
+
+The three drawn blocks, for a card whose point is a shape. A heading is a line with nothing else on it, and the block ends at the next blank line. Use them where they earn their place, not on every card.
+
+Diagram:
+kept character for character, so columns line up
+
+Flow:
+phone -> {60 ms} edge cache -> load balancer -> database
+  load balancer -> {miss} read replica
+
+Tree:
+Is the data needed offline?
+  yes -> a local database
+    Is there a lot of it?
+      yes -> SQLite
+      no -> a key-value store
+  no -> fetch it every time
+
+In a flow, boxes are joined by " -> ", a label on the arrow goes in braces just before the box it points at, and a line starting with two spaces is a branch that repeats the box it comes out of. In a tree, two spaces are one level, a line ending in "?" is a question, and "condition -> Box" is a branch.
+
+Reply with the JSON only.
+</textarea>
+    <div class="row">
+      <button type="button" id="prompt-copy">Copy the prompt</button>
+      <span class="said" id="prompt-said"></span>
+    </div>
+  </section>
+
+  <section id="mine" hidden>
+    <h2>My decks</h2>
+    <ul class="decks" id="mine-list"></ul>
+    <p class="quiet">Kept in this browser only.</p>
+  </section>
+
+  <footer>
+    <a href="https://github.com/alexslkgit/own-words">github.com/alexslkgit/own-words</a> &middot; MIT
+  </footer>
+
+</main>
+<script src="decks/links.js"></script>
+<script src="core/vendor/lz-string.min.js"></script>
+<script src="scripts/parse-deck.js"></script>
+<script src="scripts/landing.js"></script>

@@ -1,0 +1,122 @@
+/* The landing, and nothing else. Every colour is a token out of core/shell.css, which this page
+   links first: the landing and the deck pages are the same surface and must not drift apart. */
+
+body { background: var(--page-bg); }
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 56px 24px 40px;
+  color: var(--tx);
+}
+
+h1 {
+  font-family: "Source Serif 4", Georgia, serif;
+  font-size: 40px;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0 0 12px;
+}
+
+.lede {
+  font-size: 18px;
+  line-height: 1.5;
+  margin: 0 0 40px;
+  color: var(--lg-tx);
+  max-width: 34em;
+}
+
+section { margin: 0 0 36px; }
+
+h2 {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mut);
+  margin: 0 0 14px;
+}
+
+/* Not `.note`: core/shell.css owns that class and would paint a box behind it. Every class on
+   this page is checked against that stylesheet, because the landing links it whole. */
+.quiet {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--mut);
+  margin: 10px 0 0;
+}
+.quiet.lead { margin: 0 0 12px; }
+
+/* A deck to open: one row per deck, the whole row is the link. */
+.decks { list-style: none; margin: 0; padding: 0; }
+.decks li { margin: 0 0 10px; }
+
+.decks a {
+  display: block;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-bd);
+  border-radius: 10px;
+  box-shadow: var(--chip-sh);
+  color: var(--tx);
+}
+.decks a:hover { border-color: var(--field-bd); color: var(--tx); }
+.decks .name { font-size: 16px; }
+.decks .sub { display: block; font-size: 13px; color: var(--mut); margin-top: 3px; }
+
+textarea {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--tx);
+  background: var(--field-bg);
+  border: 1px solid var(--field-bd);
+  border-radius: 10px;
+  padding: 12px 14px;
+  resize: vertical;
+}
+textarea:focus { outline: none; box-shadow: var(--field-ring); }
+
+#paste { min-height: 132px; }
+
+#prompt {
+  min-height: 180px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--card-mute-bg);
+  border-color: var(--card-mute-bd);
+  color: var(--lg-tx);
+}
+
+.row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  color: #FFFFFF;
+  background: var(--acc-fill);
+  border: 1px solid var(--acc-fill);
+  border-radius: 8px;
+  padding: 9px 18px;
+  cursor: pointer;
+}
+button:hover { background: var(--acc-tx-h); border-color: var(--acc-tx-h); }
+button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.said { font-size: 14px; color: var(--mut); }
+.said.bad { color: var(--acc-tx); }
+
+footer {
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  font-size: 13px;
+  color: var(--mut);
+}
+
+@media (max-width: 640px) {
+  .wrap { padding: 36px 18px 32px; }
+  h1 { font-size: 32px; }
+  .lede { font-size: 16px; margin-bottom: 32px; }
+}
