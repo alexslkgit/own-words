@@ -9,16 +9,21 @@
  * `?k=` is the landing's link to a deck already filed. The engine has no notion of it - it
  * resolves window.DECK or the hash and nothing else - so the key is turned back into a deck
  * here, through the engine's own OwnWords.open.
+ *
+ * With neither of the two in the link the page was opened by hand, and there is nothing to show.
+ * The engine has already printed its own empty-deck message underneath, which reads like a fault;
+ * the panel below replaces it with the one thing that is true - this link carries no deck.
  */
 (function () {
-  if (!window.OwnWords) return;
 
   // A `?k=` link is only ever written by "My decks" on the landing, out of this browser's own
   // localStorage, so the one way to arrive here with a key the engine cannot find is to have
   // brought the link somewhere else: another browser, another profile, or the same one after its
   // site data was cleared. The engine's answer to that is its empty-deck message, which reads as
   // if the deck were broken. It is not; it is elsewhere, and only two things bring it back.
-  function missing() {
+  //
+  // `lede` is the one line that differs between that and a link with no deck in it at all.
+  function missing(lede) {
     // landing.css is deliberately not linked by deck.html: its button, h1 and h2 rules would
     // repaint the engine's own chrome on every deck page. It is pulled in here only, on a page
     // that is about to be nothing but this panel.
@@ -36,7 +41,7 @@
 
     var said = document.createElement("p");
     said.className = "lede";
-    said.textContent = "This deck was kept in a different browser. Open its #d= link again, or paste the JSON.";
+    said.textContent = lede;
     wrap.appendChild(said);
 
     var list = document.createElement("ul");
@@ -61,14 +66,27 @@
   }
 
   var byKey = /[?&]k=([^&]+)/.exec(window.location.search || "");
-  if (byKey) {
-    var opened = window.OwnWords.open(decodeURIComponent(byKey[1]));
-    if (!opened || !opened.ok) missing();
+  var byHash = /[#&]d=([^&]+)/.exec(window.location.hash || "");
+
+  // Nothing in the link: deck.html is a frame a deck is opened in, never a page of its own. This
+  // is checked before the engine is, because a bare deck.html has to say so even if the engine
+  // never came up.
+  if (!byKey && !byHash) {
+    missing("This link carries no deck. Open one from the own-words page, or paste a deck there.");
     return;
   }
 
-  var byHash = /[#&]d=([^&]+)/.exec(window.location.hash || "");
-  if (!byHash || typeof LZString === "undefined") return;
+  if (!window.OwnWords) return;
+
+  if (byKey) {
+    var opened = window.OwnWords.open(decodeURIComponent(byKey[1]));
+    if (!opened || !opened.ok) {
+      missing("This deck was kept in a different browser. Open its #d= link again, or paste the JSON.");
+    }
+    return;
+  }
+
+  if (typeof LZString === "undefined") return;
   try {
     var json = LZString.decompressFromEncodedURIComponent(byHash[1]);
     if (json) window.OwnWords.loadFromText(json);

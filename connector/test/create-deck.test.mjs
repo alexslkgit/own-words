@@ -107,7 +107,7 @@ test("packed link round-trips through lz-string back to the original JSON", () =
 });
 
 test("validates the real how-own-words-works deck", () => {
-  const path = "/Users/slobodianiukoleksandr/Tasks/adhd-plugin/decks/how-own-words-works.json";
+  const path = join(HERE, "fixtures", "how-own-words-works.json");
   const deck = JSON.parse(readFileSync(path, "utf8"));
   const result = validateDeck(deck);
   assert.equal(result.ok, true);
