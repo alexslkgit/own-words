@@ -1,0 +1,756 @@
+/* The shell. Geometry and class names live in the markup, colour lives here and only here:
+   the light and the dark theme are the same page with a different set of variables.
+   Values are taken from W1-work-light / W1-work-dark and .claude/tasks/round5-shell.md. */
+
+:root {
+  --page-bg: #F5F3F0;
+  --page-img: none;
+  --tx: #23211E;
+  --mut: #6B6862;
+  --dim: #6E6A63;
+  --lg-tx: #5C5954;
+  --hint-tx: #757169;
+  --bd-tx: #4E4B46;
+  --q-tx: #1F1D1A;
+  --q-mu-tx: #55524D;
+  --ftx: #211F1C;
+
+  --acc-tx: #A25A34;
+  --acc-tx-h: #82461F;
+  --acc-fill: #A25A34;
+  /* Visible, and nothing more than visible: a ring that shouts is the same noise as a label
+     that names what is already on screen. */
+  --focus: rgba(162,90,52,.55);
+
+  --rule: #EDEAE5;
+  --vr: #E1DED8;
+  --dot: #C9C4BC;
+
+  --chip-bg: #FFFFFF;
+  --chip-bd: #E9E6E1;
+  --chip-sh: 0 1px 1px rgba(35,33,30,.03);
+
+  --pill-bg: #EDEAE5;
+  --pill-tx: #6B6862;
+
+  --new-bg: rgba(162,90,52,.10);
+  --new-bd: rgba(162,90,52,.24);
+  --new-tx: #8A4A2C;
+
+  --card-bg: #FFFFFF;
+  --card-bd: #ECE9E4;
+  --card-sh: 0 1px 2px rgba(35,33,30,.04), 0 14px 36px rgba(35,33,30,.055);
+  --card-mute-bg: #FAF9F6;
+  --card-mute-bd: #EBE8E2;
+
+  --note-bg: #F4F2EE;
+  --note-bd: #EEEBE6;
+  --note-acc-bg: #F7F0EA;
+  --note-acc-bd: #E7D6C7;
+  --clar-bg: #ECEFF2;
+  --clar-bd: #DFE4E9;
+
+  --field-bg: #FFFFFF;
+  --field-bd: #D9C7BA;
+  --field-ring: 0 0 0 3.5px rgba(162,90,52,.10);
+
+  --veil-bg: #F4F2EE;
+  --veil-stripe: rgba(35,33,30,.045);
+  --veil-bd: #E7E3DD;
+
+  --fold-bg: #F4F2EE;
+  --fold-bd: #E7E3DD;
+
+  --tf-bg: #FFFFFF;
+  --tf-bd: #E2DED7;
+  --tfq-bg: #FFFFFF;
+  --tfq-bd: #E4E0DA;
+
+  --track-bg: #F0EEEA;
+  --mk-tx: #5C5954;
+  --mk-hov-bg: rgba(255,255,255,.66);
+  --mk-hov-tx: #45423D;
+  --mk-sel-bg: #FFFFFF;
+  --mk-sel-tx: #23211E;
+  --mk-sel-sh: 0 1px 2px rgba(35,33,30,.10);
+
+  --flag-bd: #E0C6B2;
+  --flag-on-bg: rgba(162,90,52,.08);
+  --flag-on-bd: #D9C7BA;
+
+  --btn-pri-bg: #23211E;
+  --btn-pri-tx: #FBFAF8;
+  --btn-pri-sh: 0 1px 2px rgba(35,33,30,.16);
+  --btn-sec-bg: #FFFFFF;
+  --btn-sec-bd: #DFDAD3;
+  --btn-off-bd: #E4E0DA;
+  --kbd-bg: rgba(251,250,248,.14);
+  --kbd-tx: rgba(251,250,248,.86);
+
+  --rrow-tx: #5C5954;
+  --rrow-sel-bg: #FFFFFF;
+  --rrow-sel-tx: #23211E;
+  --rrow-sel-sh: 0 1px 2px rgba(35,33,30,.10);
+
+  --qn-bd: #E0DCD5;
+  --qn-tx: #6F6A62;
+  --qn-done-bg: #FFFFFF;
+  --qn-done-bd: #E4E0DA;
+  --qn-done-tx: #33302C;
+  --qn-done-sh: 0 1px 1px rgba(35,33,30,.05);
+  /* A skipped cell now sits on the open stack's surface rather than on the page, so it is one
+     step darker than that surface instead of one step darker than the page; #EDEAE5 against
+     #EFECE7 was invisible. #5C5954 on it is 5.2:1. */
+  --qn-skip-bg: #E7E3DD;
+  --qn-skip-bd: #E0DBD4;
+  --qn-skip-tx: #5C5954;
+  --qn-cur-bg: #23211E;
+  --qn-cur-tx: #FBFAF8;
+  --qn-nw-bd: #D9C7BA;
+  --qn-nw-ring: 0 0 0 2.5px rgba(162,90,52,.16);
+  --tdot-ring: #EFECE7;
+
+  /* The diagram box. A drawn schema is the one place in an answer where a column has to line
+     up under the column above it, so it gets the only monospace on the page. */
+  --mono-bg: #FBFAF8;
+  --mono-bd: #E7E3DD;
+  --mono-tx: #3F3C38;
+
+  /* The drawn diagram. Four tags and a neutral, each one a box colour rather than a word he has
+     to read: that is the whole reason the block exists. The arrow and the branch guide are one
+     step darker than a rule, because a line that carries a direction has to be seen. */
+  --fedge: #A39C92;
+  --fguide: #D6D1C9;
+  --tg-ios-bg: #E9EFFA; --tg-ios-bd: #C5D6EF; --tg-ios-tx: #2B559B;
+  --tg-srv-bg: #FAEDE2; --tg-srv-bd: #EBCFB4; --tg-srv-tx: #93501F;
+  --tg-net-bg: #E6F2E8; --tg-net-bd: #C3DDC9; --tg-net-tx: #2C6640;
+  --tg-db-bg:  #F0EAF7; --tg-db-bd:  #D7C9E9; --tg-db-tx:  #64449A;
+  --tg-no-bg:  #F4F2EE; --tg-no-bd:  #E0DCD5; --tg-no-tx:  #4E4B46;
+
+  /* The open stack's surface. One tone off the page, and it covers the name, the cells and
+     the description together, so nothing inside it can be read as a row of the list. */
+  --stk-bg: #EFECE7;
+  --desc-tx: #6B6862;
+
+  --ic-tx: #99938A;
+  --ic-hov-bg: #EDEAE5;
+  --ic-hov-tx: #23211E;
+  --ic-on-bg: rgba(162,90,52,.10);
+  --ic-on-tx: #8A4A2C;
+
+  --keys-bg: #FFFFFF;
+  --keys-bd: #E4E0DA;
+  --keys-sh: 0 2px 6px rgba(35,33,30,.06), 0 18px 44px rgba(35,33,30,.10);
+}
+
+[data-theme="dark"] {
+  --page-bg: #17181B;
+  --page-img: linear-gradient(180deg, #1B1C20 0%, #17181B 46%, #151619 100%);
+  --tx: #EBE7E0;
+  --mut: #9A958C;
+  --dim: #9A958C;
+  --lg-tx: #A7A29A;
+  --hint-tx: #979289;
+  --bd-tx: #BFBAB2;
+  --q-tx: #EFEBE4;
+  --q-mu-tx: #BDB8B0;
+  --ftx: #F2EEE7;
+
+  --acc-tx: #D9A66B;
+  --acc-tx-h: #EABE8B;
+  --acc-fill: #C8975C;
+  --focus: rgba(200,151,92,.55);
+
+  --rule: rgba(255,255,255,.075);
+  --vr: #34363B;
+  --dot: #4E5055;
+
+  --chip-bg: rgba(255,255,255,.045);
+  --chip-bd: rgba(255,255,255,.09);
+  --chip-sh: 0 1px 0 rgba(255,255,255,.035) inset;
+
+  --pill-bg: rgba(255,255,255,.08);
+  --pill-tx: #A7A29A;
+
+  --new-bg: rgba(200,151,92,.14);
+  --new-bd: rgba(200,151,92,.32);
+  --new-tx: #D9A66B;
+
+  --card-bg: #1E1F23;
+  --card-bd: rgba(255,255,255,.07);
+  --card-sh: 0 1px 0 rgba(255,255,255,.045) inset, 0 22px 48px rgba(0,0,0,.42);
+  --card-mute-bg: #1B1C20;
+  --card-mute-bd: rgba(255,255,255,.055);
+
+  --note-bg: #24262A;
+  --note-bd: rgba(255,255,255,.05);
+  --note-acc-bg: #272329;
+  --note-acc-bd: rgba(200,151,92,.22);
+  --clar-bg: #202630;
+  --clar-bd: rgba(255,255,255,.075);
+
+  --field-bg: #131418;
+  --field-bd: rgba(200,151,92,.38);
+  --field-ring: 0 0 0 3.5px rgba(200,151,92,.12);
+
+  --veil-bg: #1B1D21;
+  --veil-stripe: rgba(255,255,255,.05);
+  --veil-bd: rgba(255,255,255,.06);
+
+  --fold-bg: #212328;
+  --fold-bd: rgba(255,255,255,.065);
+
+  --tf-bg: rgba(255,255,255,.045);
+  --tf-bd: rgba(255,255,255,.09);
+  --tfq-bg: #1A1B1F;
+  --tfq-bd: rgba(255,255,255,.08);
+
+  --track-bg: rgba(255,255,255,.05);
+  --mk-tx: #A7A29A;
+  --mk-hov-bg: rgba(255,255,255,.07);
+  --mk-hov-tx: #D2CEC7;
+  --mk-sel-bg: rgba(255,255,255,.11);
+  --mk-sel-tx: #F4F0E9;
+  --mk-sel-sh: 0 1px 2px rgba(0,0,0,.35);
+
+  --flag-bd: rgba(200,151,92,.40);
+  --flag-on-bg: rgba(200,151,92,.10);
+  --flag-on-bd: rgba(200,151,92,.52);
+
+  --btn-pri-bg: #EBE7E0;
+  --btn-pri-tx: #17181B;
+  --btn-pri-sh: 0 1px 2px rgba(0,0,0,.45);
+  --btn-sec-bg: transparent;
+  --btn-sec-bd: rgba(255,255,255,.14);
+  --btn-off-bd: rgba(255,255,255,.13);
+  --kbd-bg: rgba(23,24,27,.10);
+  --kbd-tx: rgba(23,24,27,.78);
+
+  --rrow-tx: #A7A29A;
+  --rrow-sel-bg: rgba(255,255,255,.11);
+  --rrow-sel-tx: #F4F0E9;
+  --rrow-sel-sh: 0 1px 2px rgba(0,0,0,.35);
+
+  --qn-bd: rgba(255,255,255,.13);
+  --qn-tx: #938E86;
+  --qn-done-bg: rgba(255,255,255,.11);
+  --qn-done-bd: rgba(255,255,255,.10);
+  --qn-done-tx: #EFEBE4;
+  --qn-done-sh: 0 1px 2px rgba(0,0,0,.35);
+  --qn-skip-bg: rgba(255,255,255,.065);
+  --qn-skip-bd: rgba(255,255,255,.10);
+  --qn-skip-tx: #938E86;
+  --qn-cur-bg: #EBE7E0;
+  --qn-cur-tx: #17181B;
+  --qn-nw-bd: rgba(200,151,92,.45);
+  --qn-nw-ring: 0 0 0 2.5px rgba(200,151,92,.20);
+  --tdot-ring: #1E2024;
+
+  --mono-bg: #1D1F23;
+  --mono-bd: #2C2F34;
+  --mono-tx: #CDC8C0;
+
+  --fedge: #7C776F;
+  --fguide: #3A3D43;
+  --tg-ios-bg: rgba(110,160,235,.13); --tg-ios-bd: rgba(110,160,235,.34); --tg-ios-tx: #93B8F0;
+  --tg-srv-bg: rgba(200,151,92,.14);  --tg-srv-bd: rgba(200,151,92,.34);  --tg-srv-tx: #D9A66B;
+  --tg-net-bg: rgba(106,183,130,.13); --tg-net-bd: rgba(106,183,130,.32); --tg-net-tx: #89C9A0;
+  --tg-db-bg:  rgba(167,139,214,.13); --tg-db-bd:  rgba(167,139,214,.32); --tg-db-tx:  #BBA3E2;
+  --tg-no-bg:  rgba(255,255,255,.055);--tg-no-bd:  rgba(255,255,255,.11); --tg-no-tx:  #BFBAB2;
+
+  --stk-bg: #1E2024;
+  --desc-tx: #9A958C;
+
+  --ic-tx: #7C776F;
+  --ic-hov-bg: #23252A;
+  --ic-hov-tx: #EBE7E0;
+  --ic-on-bg: rgba(200,151,92,.16);
+  --ic-on-tx: #D89B72;
+
+  --keys-bg: #1C1E22;
+  --keys-bd: #2C2F34;
+  --keys-sh: 0 2px 6px rgba(0,0,0,.30), 0 18px 44px rgba(0,0,0,.44);
+}
+
+/* ---- page ------------------------------------------------------------------------- */
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+a { color: var(--acc-tx); text-decoration: none; }
+a:hover { color: var(--acc-tx-h); }
+
+/* One screen, never a scrolling page: the card body scrolls inside itself instead. The
+   narrow layout below gives that up and lets the page grow. */
+.page {
+  height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+  background-color: var(--page-bg); background-image: var(--page-img);
+  color: var(--tx); position: relative;
+}
+.gs, body { font-family: "Golos Text", "Helvetica Neue", Arial, sans-serif; }
+.sf { font-family: "Source Serif 4", Georgia, serif; }
+
+.fx { display: flex; }
+.col { flex-direction: column; }
+.ac { align-items: center; }
+.jc { justify-content: center; }
+.jb { justify-content: space-between; }
+.wrp { flex-wrap: wrap; }
+.rel { position: relative; }
+.grow { flex: 1 1 auto; min-height: 0; min-width: 0; }
+.none { flex: none; }
+/* A scroller without the chrome. A bar inside a 224px rail or across a strip of tabs reads as
+   noise rather than affordance, and it sat on top of the elements under it; nothing becomes
+   unreachable, because wheel and trackpad still scroll it and every row inside is a button, so
+   Tab reaches it and scrolls it into view.
+   The bar said one more thing, though, and that has to be said some other way: that there is
+   more where you are heading. `.msk` is that other way. The gradient itself is written in by
+   edgeMask() in shell.js, once per scroll, and only on the side that actually has more under
+   it, so nothing is faded that is not hiding anything. */
+.nosb { scrollbar-width: none; }
+.nosb::-webkit-scrollbar { display: none; }
+
+/* ---- text ------------------------------------------------------------------------- */
+
+.lbl, .act {
+  font-size: 11px; font-weight: 600; letter-spacing: .13em; line-height: 1.3;
+  text-transform: uppercase;
+}
+.lbl { color: var(--mut); }
+.act { color: var(--acc-tx); }
+.num { font-variant-numeric: tabular-nums; }
+.tx { color: var(--tx); }
+.mut { color: var(--mut); }
+.dim { color: var(--dim); }
+.lg { font-size: 12.5px; line-height: 1.5; color: var(--lg-tx); }
+.hint { font-size: 13.5px; line-height: 1.5; color: var(--hint-tx); }
+.bd { font-size: 13px; line-height: 1.6; color: var(--bd-tx); }
+.bd14 { font-size: 14px; line-height: 1.62; color: var(--bd-tx); }
+.nm { font-size: 13.5px; font-weight: 600; white-space: nowrap; color: var(--tx); letter-spacing: -.004em; }
+.nm.s { font-size: 12.5px; }
+.q { color: var(--q-tx); letter-spacing: -.008em; text-wrap: pretty; }
+.q.mu { color: var(--q-mu-tx); }
+.ftx { color: var(--ftx); }
+.fltx { color: var(--acc-tx); }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- small parts ------------------------------------------------------------------ */
+
+.cevbox { display: flex; align-items: center; justify-content: center; width: 9px; height: 9px; }
+.cev {
+  display: block; width: 5px; height: 5px;
+  border-right: 1.6px solid var(--acc-tx); border-bottom: 1.6px solid var(--acc-tx);
+  transform: rotate(-45deg);
+}
+.cev.up { transform: rotate(135deg); }
+.acf { background: var(--acc-fill); }
+.acr { background: transparent; box-shadow: inset 0 0 0 1.5px var(--acc-fill); }
+.dot { width: 3px; height: 3px; border-radius: 50%; background: var(--dot); }
+.caret { display: inline-block; width: 2px; border-radius: 1px; background: var(--acc-fill); }
+.rule { height: 1px; background: var(--rule); }
+.vr { width: 1px; background: var(--vr); }
+
+.chip {
+  display: flex; align-items: center; height: 26px; padding: 0 12px; gap: 8px;
+  background: var(--chip-bg); border: 1px solid var(--chip-bd); border-radius: 999px;
+  box-shadow: var(--chip-sh);
+}
+.pill {
+  display: flex; align-items: center; height: 18px; padding: 0 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 500; background: var(--pill-bg); color: var(--pill-tx);
+}
+.new {
+  display: flex; align-items: center; height: 18px; padding: 0 8px; border-radius: 999px;
+  font-size: 10px; font-weight: 600; letter-spacing: .11em; text-transform: uppercase;
+  background: var(--new-bg); border: 1px solid var(--new-bd); color: var(--new-tx);
+}
+
+/* ---- boxes ------------------------------------------------------------------------ */
+
+.card {
+  display: flex; flex-direction: column;
+  background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: 22px;
+  box-shadow: var(--card-sh);
+}
+.card.mute { background: var(--card-mute-bg); border-color: var(--card-mute-bd); box-shadow: none; }
+.card.sm { border-radius: 16px; }
+.note { background: var(--note-bg); border: 1px solid var(--note-bd); border-radius: 14px; }
+.note.acc { background: var(--note-acc-bg); border-color: var(--note-acc-bd); }
+/* «Notes», the upper of the card's two blocks. The answer is warm neutral and «from Claude» is
+   warm accent, so the third box on the card is taken the other way off the page's warm grey: a
+   cool tint of the same lightness, which separates it from the answer standing right under it
+   without adding a fourth colour to the card. */
+.note.clar { background: var(--clar-bg); border-color: var(--clar-bd); }
+.field {
+  background: var(--field-bg); border: 1px solid var(--field-bd); border-radius: 16px;
+  box-shadow: var(--field-ring);
+}
+.veil {
+  background-color: var(--veil-bg);
+  background-image: repeating-linear-gradient(135deg, var(--veil-stripe) 0 5px, rgba(0,0,0,0) 5px 11px);
+  border: 1px solid var(--veil-bd); border-radius: 12px;
+}
+.fold {
+  display: flex; align-items: center;
+  background: var(--fold-bg); border: 1px solid var(--fold-bd); border-radius: 12px;
+}
+.tf { display: flex; align-items: center; background: var(--tf-bg); border: 1px solid var(--tf-bd); border-radius: 10px; }
+.tfq { display: flex; align-items: flex-start; background: var(--tfq-bg); border: 1px solid var(--tfq-bd); border-radius: 14px; }
+/* Stacked, its children take the box's width. They used to shrink to their own content, which
+   is why the «anything else» box was a full-width frame around a 140px textarea whose placeholder
+   wrapped and was cut in the middle. */
+.tfq.col { align-items: stretch; }
+
+/* ---- marks ------------------------------------------------------------------------ */
+
+/* Seven stacks do not fit across the card at 900px and barely fit at 1400. The strip scrolls
+   inside its own width instead of pushing the page sideways: max-width is what keeps it from
+   claiming the intrinsic width of its children. */
+.track {
+  display: flex; align-items: center; padding: 3px; gap: 2px; max-width: 100%;
+  background: var(--track-bg); border-radius: 12px;
+}
+.track.x { overflow-x: auto; flex: none; }
+.track.c { border-radius: 10px; }
+.mk {
+  display: flex; align-items: center; white-space: nowrap; height: 34px; padding: 0 15px;
+  font: inherit; font-size: 13.5px; font-weight: 400; color: var(--mk-tx);
+  background: transparent; border: 0; border-radius: 9px; cursor: pointer;
+}
+.mk:hover { background: var(--mk-hov-bg); color: var(--mk-hov-tx); }
+.mk.sel { background: var(--mk-sel-bg); color: var(--mk-sel-tx); font-weight: 500; box-shadow: var(--mk-sel-sh); }
+.mk.c { height: 22px; font-size: 10px; padding: 0 6px; border-radius: 7px; }
+
+.flag {
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 15px 0 12px;
+  font: inherit; background: transparent; border: 1px solid var(--flag-bd); border-radius: 999px;
+  cursor: pointer;
+}
+.flag.on { background: var(--flag-on-bg); border-color: var(--flag-on-bd); color: var(--acc-tx); font-weight: 500; }
+.flag.c { height: 22px; padding: 0 11px 0 9px; }
+
+/* ---- buttons ---------------------------------------------------------------------- */
+
+.btn {
+  display: flex; align-items: center; height: 42px; border-radius: 12px;
+  font: inherit; cursor: pointer; border: 0; background: transparent; color: inherit;
+}
+.btn.pri {
+  background: var(--btn-pri-bg); color: var(--btn-pri-tx); padding: 0 16px 0 20px;
+  font-size: 14.5px; font-weight: 500; box-shadow: var(--btn-pri-sh);
+}
+.btn.sec {
+  background: var(--btn-sec-bg); border: 1px solid var(--btn-sec-bd); padding: 0 18px;
+  font-size: 14px; font-weight: 500; color: var(--acc-tx);
+}
+.btn.off {
+  background: transparent; border: 1px solid var(--btn-off-bd); padding: 0 16px;
+  font-size: 14px; font-weight: 400; color: var(--mut);
+}
+/* In the 224px rail the label does not fit on one line, and a button whose text is cut is a
+   button he has to guess at. This one takes the rail's width and grows down instead. */
+.btn.wide {
+  width: 100%; height: auto; min-height: 42px; padding: 10px 14px;
+  text-align: left; line-height: 1.35;
+}
+.kbd {
+  background: var(--kbd-bg); border-radius: 6px; padding: 3px 7px;
+  font-size: 11.5px; letter-spacing: .06em; color: var(--kbd-tx);
+}
+
+/* ---- the rail --------------------------------------------------------------------- */
+
+/* A stack whose name does not fit on one line grows its row instead of spilling out of a
+   fixed height, which is where the ragged left column came from. 12px on the left is the same
+   12px the open stack pads with, so a closed name and an open name start at one edge. */
+.rrow {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 36px; padding: 8px 12px; border-radius: 10px; width: 100%;
+  font: inherit; font-size: 13.5px; line-height: 1.45; text-align: left;
+  background: transparent; border: 0; color: var(--rrow-tx); cursor: pointer;
+}
+.rrow.sel { background: var(--rrow-sel-bg); color: var(--rrow-sel-tx); font-weight: 500; box-shadow: var(--rrow-sel-sh); }
+
+/* The open stack is one surface and not three things that happen to be near each other: the
+   name, the cells and the description live on it together, so the description can never be
+   taken for the next row of the list. A closed stack stays a flat row on the page itself. */
+.stk {
+  display: flex; flex-direction: column; gap: 10px;
+  background: var(--stk-bg); border-radius: 12px; padding: 12px;
+}
+/* The surface is what says «open». The letterform says nothing: same weight as a closed name,
+   because two signals for one state is one signal too many. */
+.rrow.top { min-height: 0; padding: 0; width: auto; color: var(--tx); font-weight: 400; }
+
+.qn {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 7px;
+  font: inherit; font-size: 11px; font-weight: 500; font-variant-numeric: tabular-nums;
+  background: transparent; border: 1px solid var(--qn-bd); color: var(--qn-tx); cursor: pointer;
+}
+.qn.done { background: var(--qn-done-bg); border-color: var(--qn-done-bd); color: var(--qn-done-tx); box-shadow: var(--qn-done-sh); }
+.qn.skip { background: var(--qn-skip-bg); border-color: var(--qn-skip-bd); color: var(--qn-skip-tx); }
+.qn.cur { background: var(--qn-cur-bg); border-color: var(--qn-cur-bg); color: var(--qn-cur-tx); }
+.qn.nw { border-color: var(--qn-nw-bd); box-shadow: var(--qn-nw-ring); }
+.qn.leg { cursor: default; }
+/* «Reread» took this one out of the queue: struck through and faded, but still a button,
+   because clicking the cell is how he opens a card the queue is no longer offering him. The
+   current card keeps enough of itself to be read while it is the one on screen. */
+.qn.hid { opacity: .42; text-decoration: line-through; }
+.qn.hid:hover { opacity: .75; }
+.qn.cur.hid { opacity: .72; }
+/* Sitting in the corner, the dot fell into the gap between two cells and read as the next
+   cell's mark. Centred over its own cell there is nothing to misread. */
+.tdot {
+  position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--acc-fill); border: 1.5px solid var(--tdot-ring);
+}
+
+/* ---- the answer's markup ----------------------------------------------------------- */
+
+/* Three weights and nothing else: the phrase that matters, the ordinary sentence, the aside.
+   Italic carries no colour of its own, so it stays readable where bold would shout. */
+.em { font-weight: 600; color: var(--q-tx); }
+.it { font-style: italic; color: var(--mut); }
+
+.mono {
+  background: var(--mono-bg); border: 1px solid var(--mono-bd); border-radius: 10px;
+  padding: 11px 14px;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px; line-height: 1.62; color: var(--mono-tx);
+}
+/* The scrolling and the fade sit on an inner box, not on this one. A mask is applied to the
+   whole border box, so masking the framed box itself dissolves its own border at the edge that
+   fades, and a box missing one of its four edges is exactly the defect he was pointing at. */
+.mono > div { white-space: pre; overflow-x: auto; }
+
+/* ---- the drawn diagram ------------------------------------------------------------- */
+
+/* Three block kinds share one rhythm: 16px of air above and below, and none of it doubled at
+   the ends, where the box around the answer already pads. */
+.mono, .flow, .tree { margin: 16px 0; }
+.mono:first-child, .flow:first-child, .tree:first-child { margin-top: 0; }
+.mono:last-child, .flow:last-child, .tree:last-child { margin-bottom: 0; }
+
+/* A box says what it is by its colour. The five sets of variables are declared on the tag
+   class, so one rule paints a flow node, a tree leaf and an inline marker alike, and none of
+   them has to out-specify anything. */
+.tg-ios { --tgb: var(--tg-ios-bg); --tgd: var(--tg-ios-bd); --tgt: var(--tg-ios-tx); }
+.tg-srv { --tgb: var(--tg-srv-bg); --tgd: var(--tg-srv-bd); --tgt: var(--tg-srv-tx); }
+.tg-net { --tgb: var(--tg-net-bg); --tgd: var(--tg-net-bd); --tgt: var(--tg-net-tx); }
+.tg-db  { --tgb: var(--tg-db-bg);  --tgd: var(--tg-db-bd);  --tgt: var(--tg-db-tx); }
+.tg-no  { --tgb: var(--tg-no-bg);  --tgd: var(--tg-no-bd);  --tgt: var(--tg-no-tx); }
+
+.fnode, .tbox {
+  display: flex; align-items: center; min-height: 32px; max-width: 100%;
+  padding: 6px 13px; border-radius: 11px;
+  font-size: 13.5px; line-height: 1.35; font-weight: 500; text-wrap: pretty;
+  background: var(--tgb); border: 1px solid var(--tgd); color: var(--tgt);
+}
+/* The same pill inside a sentence: smaller, rounder, and bold, because it stands where a bold
+   phrase stood before it. */
+.em.tg {
+  display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; line-height: 1.45;
+  background: var(--tgb); border: 1px solid var(--tgd); color: var(--tgt);
+}
+
+.flow { display: flex; flex-direction: column; gap: 12px; }
+/* Rows wrap instead of scrolling sideways: at 900px the card is narrower than four boxes and a
+   diagram he has to drag is a diagram he will not look at. */
+.frow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 4px; }
+/* The arrow and the node after it are one unbreakable pair - that is what keeps an arrow from
+   being left pointing at the end of a line. */
+.funit { display: flex; align-items: center; gap: 4px; max-width: 100%; }
+
+.farr { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: none; }
+.fbar { display: flex; align-items: center; }
+.fline { display: block; width: 20px; height: 1.5px; border-radius: 1px; background: var(--fedge); }
+.ftip {
+  display: block; width: 6px; height: 6px; margin-left: -4px; transform: rotate(45deg);
+  border-right: 1.5px solid var(--fedge); border-top: 1.5px solid var(--fedge);
+}
+.flab {
+  padding: 0 6px; border-radius: 999px; white-space: nowrap;
+  font-size: 10.5px; line-height: 1.5; background: var(--pill-bg); color: var(--pill-tx);
+}
+
+/* The first box of a branch row is the box the branch comes out of, written again so the row
+   can start somewhere. Drawn like every other node it reads as a second, new box, and the row
+   then reads as an arrow out of whatever stood at the head of the row above - which is exactly
+   how a row that starts with a node already drawn above was read as coming from the phones. Dashed,
+   pale and unfilled, it reads as the repeat it is. It is marked in the model, not guessed here:
+   see `ghost` in flowRow(). */
+.fnode.ghost {
+  background: transparent; border-style: dashed; color: var(--mut); font-weight: 400;
+}
+
+/* A branch hangs off the row above it: the elbow starts in the gap over the row and turns into
+   its middle, so which node it came from is a thing he sees rather than counts, and what it
+   lands on is the ghost of that node. */
+.frow.br { position: relative; margin-left: 24px; padding-left: 18px; }
+.frow.br::before {
+  content: ""; position: absolute; left: 0; top: -14px; height: calc(50% + 14px); width: 13px;
+  border-left: 1.5px solid var(--fguide); border-bottom: 1.5px solid var(--fguide);
+  border-bottom-left-radius: 9px;
+}
+
+.tree, .tkids { display: flex; flex-direction: column; gap: 8px; }
+/* The guide line is this box's own left border, so it runs exactly as far as the branch does. */
+.tkids { margin-left: 9px; padding-left: 17px; border-left: 1.5px solid var(--fguide); }
+.tnode { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.tq { font-size: 14px; line-height: 1.4; font-weight: 600; color: var(--q-tx); }
+.tqc {
+  display: flex; align-items: center; justify-content: center; width: 19px; height: 19px;
+  border-radius: 999px; font-size: 11.5px; font-weight: 600; flex: none;
+  background: var(--new-bg); border: 1px solid var(--new-bd); color: var(--new-tx);
+}
+.tcond { font-size: 12px; line-height: 1.4; color: var(--mut); }
+.tline { font-size: 13.5px; line-height: 1.5; color: var(--bd-tx); }
+/* Same reason on the send form's preview: the frame stays, the text inside it scrolls. */
+.tfq > .sc { overflow-y: auto; min-height: 0; }
+
+/* ---- the block he has already read ------------------------------------------------- */
+
+/* The rule he asked for is the one code already uses: what is dealt with steps to the right and
+   goes quiet, what is new stands at the left margin where the eye starts every line. 20px is
+   one indent - far enough that the ragged left edge is visible down a whole card, near enough
+   that the block is still part of the same text - and .6 takes the contrast down without
+   putting the text out of reach, because «read it» is not «do not read it».
+   It has to come after .mono/.flow/.tree above: those set margin in the shorthand, which writes
+   margin-left back to 0, and at equal specificity the later rule is the one that stands. */
+.seen { margin-left: 20px; opacity: .6; }
+
+/* ---- a pointer at another card ----------------------------------------------------- */
+
+/* A pointer at another card inside the sentence that points. A button, because it does something,
+   set like a link, because that is what it looks like it does: the page's one accent colour and a
+   rule under it, so it is not merely a warm word in a warm paragraph. `display: inline` is what
+   lets it break across lines the way the words around it do; a button will not, by default.
+   It inherits the run it stands in, so a pointer written inside an aside stays the aside. */
+.cref {
+  display: inline; margin: 0; padding: 0; border: 0; background: none;
+  font: inherit; color: var(--acc-tx); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.cref:hover { color: var(--acc-tx-h); }
+
+/* The way back, on the card's header line and only for the visit the pointer started. Quiet:
+   it is navigation, like «history» beside it, not a decision about the card. */
+.bck {
+  display: flex; align-items: center; height: 22px; padding: 0 10px; flex: none;
+  font: inherit; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase;
+  white-space: nowrap; color: var(--acc-tx); background: var(--flag-on-bg);
+  border: 1px solid var(--flag-on-bd); border-radius: 999px; cursor: pointer;
+}
+.bck:hover { background: var(--note-acc-bg); color: var(--acc-tx-h); }
+
+/* ---- the stack's description ------------------------------------------------------- */
+
+/* No box of its own any more: it is quieter text on the surface it already shares with the
+   name and the cells, which is the whole of what tells it apart from a row. */
+.desc { font-size: 12px; line-height: 1.5; color: var(--desc-tx); }
+
+/* ---- icon buttons and the two toggles ---------------------------------------------- */
+
+/* Square, so a row of them shares one baseline and one height whatever is inside. 36px is the
+   hit area; the glyph inside it is about 18px, and × is set larger because that character
+   draws far smaller than its em box while ↻ nearly fills it. At rest they are barely there,
+   which is what he asked of them; hover gives them the full text colour. */
+.ic {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 10px;
+  font: inherit; font-size: 18px; line-height: 1; color: var(--ic-tx);
+  background: transparent; border: 0; cursor: pointer; flex: none;
+}
+.ic:hover { background: var(--ic-hov-bg); color: var(--ic-hov-tx); }
+.ic.on { background: var(--ic-on-bg); color: var(--ic-on-tx); }
+.ic.x { font-size: 21px; }
+/* 8px from the card's edge, measured to the edge he can see: the card pads 40px and draws a
+   1px border outside that, so the pair steps 33px back out of the padding box and lands 8px
+   inside the border. `align-items: center` on the header line is what centres them on it. */
+.corner { display: flex; align-items: center; gap: 2px; flex: none; margin-right: -33px; }
+
+/* Two words that never change. On is filled, off is an outline, and there is no third state
+   to read off the label: see toggle() in shell.js for what each one writes. The resting border
+   is the neutral one, because a warm outline on an untouched pill reads as already pressed. */
+.tog {
+  display: flex; align-items: center; height: 34px; padding: 0 14px;
+  font: inherit; font-size: 14px; color: var(--mut);
+  background: transparent; border: 1px solid var(--btn-off-bd); border-radius: 999px;
+  cursor: pointer; flex: none;
+}
+.tog:hover { color: var(--tx); }
+.tog.on { background: var(--flag-on-bg); border-color: var(--flag-on-bd); color: var(--acc-tx); font-weight: 500; }
+/* The same pill inside the 224px rail, where 34px and 14px would not leave room for the count
+   that has to stand beside it. */
+.tog.c { height: 26px; padding: 0 11px; font-size: 12.5px; }
+
+/* ---- the keyboard panel ------------------------------------------------------------ */
+
+.keys {
+  position: absolute; left: 0; bottom: 46px; width: 340px; z-index: 3;
+  background: var(--keys-bg); border: 1px solid var(--keys-bd); border-radius: 14px;
+  box-shadow: var(--keys-sh); padding: 14px 16px 15px;
+}
+
+/* ---- the card's pinned footer ------------------------------------------------------ */
+
+/* The box he writes in, the rule and the row of controls are one group and the group is the
+   floor of the card column. In the wide layout that costs nothing: the column is the window's
+   height, the body above it scrolls, and this is the last row of the flex column, so it is on
+   screen whatever the answer is doing.
+
+   The narrow layout gives up the one-screen page - see .page below - so there the group sticks
+   against the bottom of the window while the page scrolls behind it, which is the same promise
+   kept by the only means left. It is the whole footer that sticks and not the field alone: a
+   sticky box is stopped by its container's floor rather than by its siblings, so a field on its
+   own would ride down over the toggles in the last pixels of the scroll.
+
+   The background is the card's own, because the body's text passes under it, and the 6px of
+   inset the scroller above pays for its clipped edges is not needed here at all: nothing clips
+   this group, so the field's border and its 3.5px ring are whole on all four sides. */
+.cfoot { background: var(--card-bg); }
+@media (max-width: 1100px) {
+  .cfoot { position: sticky; bottom: 0; z-index: 2; }
+  /* What goes under it has to look like it is going under it. In the wide layout the scroller's
+     own mask says that; here there is no scroller to mask, so the card's colour fades up out of
+     the group's top edge over the same 14px. */
+  .cfoot::before {
+    content: ""; position: absolute; left: 0; right: 0; top: -14px; height: 14px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0), var(--card-bg));
+    pointer-events: none;
+  }
+}
+
+/* ---- rows of the page ------------------------------------------------------------- */
+
+/* The air over the card was 106px of nothing - 32 above the header line, the 26px line itself,
+   48 under it - and on his screen that is nearly three centimetres of page he scrolls past to
+   reach the first word. 14 and 12 put the card's top edge at 52px, half of what it was, at both
+   widths; the header line keeps its own height and every pixel taken off went to the card. */
+.r-head { height: 26px; margin: 14px 64px 0; flex: none; }
+.r-band { margin: 16px 64px 0; flex: none; }
+/* 32px under the card and nothing else: the row of controls that used to stand here is in the
+   rail's own footer now, so the card column runs to the page's own padding at both widths. */
+.r-main { margin: 12px 64px 32px; flex: 1 1 auto; min-height: 0; gap: 32px; }
+/* The deck-error band takes its space out of the gap above the card, not out of the card. */
+.r-main.tight { margin-top: 6px; }
+.rail { width: 224px; flex: none; }
+/* The cells take the width the surface gives them rather than a number of their own. */
+.qwrap { width: auto; gap: 6px; }
+
+/* The narrow window (N7): the rail folds above the card instead of beside it. */
+@media (max-width: 1100px) {
+  .page { height: auto; min-height: 100vh; overflow: visible; }
+  .r-head, .r-band { margin-left: 32px; margin-right: 32px; }
+  .r-main { margin-left: 32px; margin-right: 32px; flex-direction: column; gap: 20px; }
+  .rail { width: auto; }
+  .qwrap { width: auto; }
+}
+
+/* Four words, and faint enough that it cannot be mistaken for something already written in
+   the box. The long two-sentence hint that used to sit here read as content. */
+.field textarea::placeholder, .tfq textarea::placeholder { color: var(--mut); opacity: .35; }
+
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
