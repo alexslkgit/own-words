@@ -13,8 +13,59 @@
 (function () {
   if (!window.OwnWords) return;
 
+  // A `?k=` link is only ever written by "My decks" on the landing, out of this browser's own
+  // localStorage, so the one way to arrive here with a key the engine cannot find is to have
+  // brought the link somewhere else: another browser, another profile, or the same one after its
+  // site data was cleared. The engine's answer to that is its empty-deck message, which reads as
+  // if the deck were broken. It is not; it is elsewhere, and only two things bring it back.
+  function missing() {
+    // landing.css is deliberately not linked by deck.html: its button, h1 and h2 rules would
+    // repaint the engine's own chrome on every deck page. It is pulled in here only, on a page
+    // that is about to be nothing but this panel.
+    var css = document.createElement("link");
+    css.rel = "stylesheet";
+    css.href = "landing.css";
+    document.head.appendChild(css);
+
+    var wrap = document.createElement("main");
+    wrap.className = "wrap";
+
+    var title = document.createElement("h1");
+    title.textContent = "own-words";
+    wrap.appendChild(title);
+
+    var said = document.createElement("p");
+    said.className = "lede";
+    said.textContent = "This deck was kept in a different browser. Open its #d= link again, or paste the JSON.";
+    wrap.appendChild(said);
+
+    var list = document.createElement("ul");
+    list.className = "decks";
+    var row = document.createElement("li");
+    var link = document.createElement("a");
+    link.href = "index.html";
+    var name = document.createElement("span");
+    name.className = "name";
+    name.textContent = "Open a deck, or paste one";
+    var sub = document.createElement("span");
+    sub.className = "sub";
+    sub.textContent = "The own-words landing page";
+    link.appendChild(name);
+    link.appendChild(sub);
+    row.appendChild(link);
+    list.appendChild(row);
+    wrap.appendChild(list);
+
+    document.body.innerHTML = "";
+    document.body.appendChild(wrap);
+  }
+
   var byKey = /[?&]k=([^&]+)/.exec(window.location.search || "");
-  if (byKey) { window.OwnWords.open(decodeURIComponent(byKey[1])); return; }
+  if (byKey) {
+    var opened = window.OwnWords.open(decodeURIComponent(byKey[1]));
+    if (!opened || !opened.ok) missing();
+    return;
+  }
 
   var byHash = /[#&]d=([^&]+)/.exec(window.location.hash || "");
   if (!byHash || typeof LZString === "undefined") return;

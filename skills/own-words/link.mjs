@@ -41,6 +41,10 @@ try {
 if (!deck || typeof deck !== 'object') fail('deck is not an object');
 if (typeof deck.key !== 'string' || !deck.key.trim()) fail('deck.key is missing or empty');
 if (typeof deck.title !== 'string' || !deck.title.trim()) fail('deck.title is missing or empty');
+// The engine hard-codes no marks, so a deck that declares none opens perfectly well and then
+// offers the reader no way to close a card. That reads as the tool being broken, which is why
+// it is refused here and not defaulted quietly.
+if (!Array.isArray(deck.marks) || deck.marks.length === 0) fail('deck.marks is missing');
 if (!Array.isArray(deck.blocks) || deck.blocks.length === 0) fail('deck.blocks is missing or empty');
 
 let cardCount = 0;
