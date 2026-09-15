@@ -1,14 +1,19 @@
 // The one accessor every core file reads its text through. The tables themselves live in
 // core/strings.<lang>.js and register onto DECK_STRINGS, so the code carries no user-visible
-// string of its own and the public mirror of core/ can ship without the Russian table.
+// string of its own and the public mirror of core/ can ship with the English table alone.
 (function (root, factory) {
   var api = factory();
   if (typeof module === "object" && module.exports) {
     require("./strings.en.js");
     // English is the fallback and has to be there; every other table is optional, because the
-    // public mirror of core/ ships without one. A table that is not on disk is simply not a
-    // language - the accessor already falls back to English for every key.
-    try { require("./strings.ru.js"); } catch (e) { /* not mirrored */ }
+    // public mirror of core/ ships without one. So the rest are taken off the disk beside this
+    // file rather than named here: a table that is not there is simply not a language, and the
+    // accessor already falls back to English for every key.
+    try {
+      require("fs").readdirSync(__dirname).forEach(function (f) {
+        if (/^strings\.[a-z]{2,3}\.js$/.test(f) && f !== "strings.en.js") require("./" + f);
+      });
+    } catch (e) { /* English alone */ }
     module.exports = api;
   } else root.DeckStrings = api;
 })(typeof self !== "undefined" ? self : this, function () {
@@ -62,8 +67,8 @@
   }
 
   // The counted noun alone, never the number: every call site already prints the number itself.
-  // Which form is which is the table's own business - English answers one/other, Russian
-  // one/few/many - so this asks the table's pluraliser and never counts anything here.
+  // Which form is which is the table's own business - English answers one/other, another table
+  // may answer one/few/many - so this asks the table's pluraliser and never counts here.
   S.n = function (count, key) {
     var forms = table()[key];
     if (!forms || typeof forms !== "object") forms = table("en")[key];

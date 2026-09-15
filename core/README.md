@@ -8,7 +8,7 @@ The old engine (`app/`) and every deck already running on it are frozen and unaf
 
 ```js
 window.DECK = {
-  key: "raads",              // written once, NEVER changed: a new key is an empty bucket
+  key: "my-first-deck",      // written once, NEVER changed: a new key is an empty bucket
   round: 3,                  // this round's number; his answers are kept per round
   title: "…",
   copyPrefix: "…",           // the short human name of the deck: it heads the sent form
@@ -232,7 +232,7 @@ A paragraph is 14 px under the one above it, a block of the card 18 px, and ever
 
 An unmatched `**` or `_` stays the literal character it is: a half-typed marker must look like a
 typo, not eat the rest of the card. The `_` rule is narrow at the opening end so Swift survives it
-and wide at the closing end so Russian does. An **opener** stands at the head of a line, after
+and wide at the closing end so prose does. An **opener** stands at the head of a line, after
 whitespace, or just inside `«`, `(` or `"`, and has a non-space behind it. A **closer** has
 anything solid in front of it (a letter, a digit, `%`, `»`, a full stop) except those same three
 brackets, and behind it nothing but the end of the line, whitespace, or one of
@@ -419,7 +419,7 @@ hand-copied into `data.js`, which is what `norm()` and `msgsOf()` used to exist 
 
 **«New in this round»** is `seen !== card.stamp`, where the stamp is a hash of everything the
 author wrote on that card. No `rev` bookkeeping, and no mark is ever destroyed to raise the
-badge: the mechanism that cost 34 «reread» marks on `mayflower-final` is gone rather than fixed.
+badge: the mechanism that cost 34 «reread» marks on a live deck is gone rather than fixed.
 
 **«was · round N».** When the author rewrites a question, the deck file carries the new wording
 only. The old one survives because `see(id, stamp, question)` photographs the question at the

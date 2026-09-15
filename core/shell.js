@@ -121,7 +121,7 @@
   // The deck declares its own marks and the engine hard-codes none, so `side` is the only
   // thing that can decide this: "done" is closed for good, "mine" is his side of the line and
   // is the one state that deliberately keeps a card coming back. Everything here reads that
-  // field rather than any particular mark id, which is why it works on raads and mayflower too.
+  // field rather than any particular mark id, which is why it works whatever a deck calls them.
   function sideMark(side) {
     return model.marks.filter(function (m) { return m.side === side; })[0] || null;
   }
@@ -1783,11 +1783,21 @@
   // A deck page lists data, model, store, send and shell and nothing else, and the pages on disk
   // were written before the table existed. So the table is fetched from beside this file rather
   // than named over there: every deck keeps its own text without its own html being touched.
+  //
+  // English always, and beside it the table for whatever language the page says it is written in
+  // - `DECK.lang` if the deck declares one, else the `lang` on `<html>`, which is the order the
+  // accessor itself reads them in. A page that names no other language, or one whose table is not
+  // on disk, loses nothing: the accessor falls back to English key by key.
   function withStrings(done) {
     if (window.DeckStrings) { done(); return; }
     var here = (document.currentScript && document.currentScript.src) || "";
     if (!here) { done(); return; }
-    var want = ["strings.js", "strings.en.js", "strings.ru.js"], left = want.length;
+    var want = ["strings.js", "strings.en.js"];
+    var tag = (window.DECK && window.DECK.lang) ||
+      (document.documentElement && document.documentElement.lang) || "";
+    tag = String(tag).split("-")[0].toLowerCase();
+    if (/^[a-z]{2,3}$/.test(tag) && tag !== "en") want.push("strings." + tag + ".js");
+    var left = want.length;
     want.forEach(function (name) {
       var tag = document.createElement("script");
       tag.src = here.replace(/[^/]+\.js/, name);

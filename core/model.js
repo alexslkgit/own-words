@@ -159,7 +159,7 @@
   // an underscore glued to the end of a word is never an opener.
   var OPEN_BEFORE = "«(\"";          // « ( "
   // What may stand right after a span ends: the end of the line, a space, or the punctuation a
-  // Russian sentence puts after a closing aside.
+  // sentence puts after a closing aside.
   var CLOSE_AFTER = ".,;:!?)»";      // . , ; : ! ? ) »
 
   function isOpenBefore(ch) {
