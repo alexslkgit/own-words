@@ -28,7 +28,7 @@ fi
 
 mkdir -p "$PUBLIC/core"
 
-rsync -a --delete --exclude 'strings.ru.js' --exclude '.DS_Store' "$PRIVATE/core/" "$PUBLIC/core/"
+rsync -a --delete --exclude 'strings.ru.js' --exclude 'selftest.js' --exclude '.DS_Store' "$PRIVATE/core/" "$PUBLIC/core/"
 
 # Cyrillic gate: macOS grep is BSD grep and has no -P (PCRE), so use perl
 # unicode-aware matching over every non-.git file instead.
