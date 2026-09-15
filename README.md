@@ -8,7 +8,7 @@ I have ADHD. Reading a prepared answer first always felt like understanding, and
 real question found out that it was not. Typing my own answer first is what stuck, so the deck
 now makes me do it before it shows me anything.
 
-![A card with the prepared answer open above my own words](docs/own-words.png)
+![A card with the prepared answer open above my own words](docs/own-words.gif)
 
 ## Try it, nothing to install
 
