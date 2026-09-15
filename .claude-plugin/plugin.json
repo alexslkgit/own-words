@@ -1,0 +1,13 @@
+{
+  "name": "own-words",
+  "version": "0.1.0",
+  "description": "Turn any topic into a study deck you answer in your own words first",
+  "author": {
+    "name": "alexslk",
+    "url": "https://github.com/alexslkgit"
+  },
+  "homepage": "https://github.com/alexslkgit/own-words",
+  "repository": "https://github.com/alexslkgit/own-words",
+  "license": "MIT",
+  "keywords": ["study", "flashcards", "adhd", "learning", "deck"]
+}

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
+  "name": "own-words",
+  "description": "Turn any topic into a study deck you answer in your own words first",
+  "owner": {
+    "name": "alexslk",
+    "url": "https://github.com/alexslkgit"
+  },
+  "plugins": [
+    {
+      "name": "own-words",
+      "description": "Turn any topic into a study deck you answer in your own words first",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}
