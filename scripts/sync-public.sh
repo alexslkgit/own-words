@@ -31,16 +31,17 @@ mkdir -p "$PUBLIC/core"
 rsync -a --delete --exclude 'strings.ru.js' --exclude 'selftest.js' --exclude '.DS_Store' "$PRIVATE/core/" "$PUBLIC/core/"
 
 # Cyrillic gate: macOS grep is BSD grep and has no -P (PCRE), so use perl
-# unicode-aware matching over every non-.git file instead.
+# unicode-aware matching over every file git would publish (ignored dirs skipped).
 cyrillic_found=0
 while IFS= read -r -d '' f; do
+    grep -Iq . "$f" || continue   # binary (png, gif) is not text
     if perl -CSD -ne 'exit 1 if /\p{Cyrillic}/' "$f"; then
         :
     else
         cyrillic_found=1
         echo "sync-public: Cyrillic found in $f" >&2
     fi
-done < <(find "$PUBLIC" -type f -not -path '*/.git/*' -print0)
+done < <(cd "$PUBLIC" && git ls-files -z --cached --others --exclude-standard)
 
 if [ "$cyrillic_found" -ne 0 ]; then
     fail "Cyrillic found, refusing"
@@ -53,7 +54,7 @@ if [ -f "$PUBLIC/core/selftest.js" ]; then
 fi
 
 cd "$PUBLIC"
-git add -A
+git add -A -- core
 if ! git diff --cached --quiet; then
     commit_msg="$(cd "$PRIVATE" && git log -1 --pretty=%s)"
     git commit -q -m "$commit_msg"
