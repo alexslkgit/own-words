@@ -64,7 +64,7 @@ substance of the topic and the answers are worth reading.
      `id`, no `q`, or an `id` already used is dropped rather than shown broken.
    - Every card gets both `q` and `a`; a card without a real answer does not belong here.
    - Each answer is 60 to 140 words, one idea per card, and uses `**phrase**` once or
-     twice to mark the load-bearing term or claim. Use plain paragraphs — the block tokens
+     twice to mark the load-bearing term or claim. Use plain paragraphs: the block tokens
      `Diagram:`, `Flow:`, `Tree:` and `_aside_` are available for a card that genuinely
      needs one, each on its own line, but most cards need none of them.
    - Leave `round` at 1.
@@ -79,13 +79,13 @@ substance of the topic and the answers are worth reading.
    ```
 
    It validates the file and prints the link on success, or a one-line reason and a
-   non-zero exit on failure — fix the deck and run it again rather than guessing.
+   non-zero exit on failure, fix the deck and run it again rather than guessing.
 
 5. **Reply with the link and the card count, nothing else.**
 
 ## Quality bar
 
 - No card whose answer is a list of the words already in the question.
-- No yes/no questions — every question asks for an explanation, a comparison, a mechanism
+- No yes/no questions: every question asks for an explanation, a comparison, a mechanism
   or a number, never a fact he can answer without thinking.
 - Every card is answerable on its own, without having read the card before it.
