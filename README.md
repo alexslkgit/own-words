@@ -64,8 +64,10 @@ Plain HTML and JavaScript, no build step, one vendored dependency (lz-string). T
 Google Fonts for two typefaces; block that and everything still works in a system font,
 including from a `file://` path.
 
-connector/ is a small remote MCP server you can deploy to your own Cloudflare account so
-claude.ai can hand you a deck link directly; see connector/README.md.
+connector/ is a small remote MCP server so claude.ai can hand you a deck link directly. A
+public instance runs at `https://own-words-mcp.alexslkmain.workers.dev/mcp`: in claude.ai open
+Settings > Connectors > Add custom connector, paste that URL and pick No sign-in. It keeps no
+state and stores nothing, the deck goes into the link. To run your own, see connector/README.md.
 
 ## Uninstall
 
