@@ -15,8 +15,9 @@ window.DECK = {
                              // AND the page header. Defaults to title; the key is never shown.
   gate: true,                // deck-wide default: is a prepared answer hidden until he answers
 
-  from: [{ round: 3, t: "…" }],   // the assistant's word about the round as a whole; shown at
-                                  // the top of every card as «from Claude · round N»
+  from: [{ round: 3, t: "…" }],   // LEAVE ABSENT. It is drawn above EVERY card, so he reads the
+                                  // same paragraph once per card; he asked for it gone twice.
+                                  // A word about the round goes in the chat, not in the deck.
 
   scales: {                  // declared once, referred to by name
     epworth: { labels: ["never", "slight", "moderate", "high"], note: "…" }
