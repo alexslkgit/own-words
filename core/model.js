@@ -34,10 +34,11 @@
   // author's text takes to the screen. An unmatched marker is left as the literal character it
   // is, because a half-typed ** must look like a typo and not eat the rest of the card.
   //
-  // Six rules, and nothing else is markup:
+  // Seven rules, and nothing else is markup:
   //   blank line            paragraph break
   //   **bold**              the phrase that matters
   //   _italic_              the aside that matters least
+  //   http:// or https://   a link, the one rule that reads the thing itself and not a marker
   //   a line that is exactly «Diagram:»  opens a monospace block, closed by the next blank line
   //   a line that is exactly «Flow:»     opens a drawn flow, closed by the next blank line
   //   a line that is exactly «Tree:»     opens a drawn decision tree, same close
@@ -146,11 +147,12 @@
   }
 
   // A run of text with the two flags that can be on it. Adjacent runs of the same shape are
-  // merged so a caller never sees ["a"]["b"] where the author wrote "ab".
+  // merged so a caller never sees ["a"]["b"] where the author wrote "ab". A link is the one run
+  // that never absorbs its neighbour: it carries an address, and the words beside it do not.
   function pushRun(runs, text, bold, italic) {
     if (!text) return;
     var last = runs[runs.length - 1];
-    if (last && last.b === bold && last.i === italic) { last.t += text; return; }
+    if (last && !last.u && last.b === bold && last.i === italic) { last.t += text; return; }
     runs.push({ t: text, b: bold, i: italic });
   }
 
@@ -184,6 +186,56 @@
     return after !== "" && !/\s/.test(after);
   }
 
+  // ---- a link, which is the one run written without a marker around it ------------------
+  //
+  // Nobody wraps a URL in anything: he writes the address and expects to press it. So the rule
+  // reads the address itself, and it is deliberately the narrowest rule that can work -
+  // `http://` or `https://` and then anything that is not a space. A bare `www.`, a host with a
+  // port and no scheme, an e-mail: all of them stay prose. A rule that misses a link costs him
+  // one copy-paste; a rule that swallows prose silently rewrites an answer he already typed,
+  // and there are decks full of those.
+  var URL_SCAN = /https?:\/\/\S+/g;
+
+  // What a sentence puts after a link and what is therefore not inside it: the same punctuation
+  // that may stand after a closing aside, plus the brackets and quotes a link gets wrapped in.
+  // Those characters stay in the paragraph as themselves; only the href loses them.
+  var URL_TRAIL = ".,;:!?)»]}\"'";   // . , ; : ! ? ) » ] } " '
+
+  function urlEnd(s) {
+    var end = s.length;
+    while (end > 0 && URL_TRAIL.indexOf(s.charAt(end - 1)) >= 0) end--;
+    return end;
+  }
+
+  // `https://` with nothing behind it is a word, not an address, and the question is asked after
+  // the punctuation has come off, so «see https://.» never becomes a link to nowhere.
+  function hasHost(url) {
+    var at = url.indexOf("://");
+    return at > 0 && url.length > at + 3;
+  }
+
+  // Ordinary text, cut on the links inside it. A link becomes a run of its own carrying `u`, the
+  // address exactly as written: nothing is normalised, nothing is encoded, no scheme is added.
+  // Bold text is handed straight on and never cut, for the same reason a card pointer is left
+  // alone inside bold - a bold run is already a marker and may be a tag, `**[iOS]**`. An aside
+  // is cut, and the link inside it stays an aside, which is how a pointer behaves too.
+  function pushText(runs, text, bold, italic) {
+    if (!text) return;
+    if (bold) { pushRun(runs, text, bold, italic); return; }
+    var re = new RegExp(URL_SCAN.source, "g");
+    var at = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      var url = m[0].slice(0, urlEnd(m[0]));
+      // Whatever was trimmed off the end is text again, so the scan resumes at the trim.
+      re.lastIndex = m.index + url.length;
+      if (!hasHost(url)) continue;
+      pushRun(runs, text.slice(at, m.index), bold, italic);
+      runs.push({ t: url, b: bold, i: italic, u: url });
+      at = m.index + url.length;
+    }
+    pushRun(runs, text.slice(at), bold, italic);
+  }
+
   function inline(line) {
     var runs = [];
     var buf = "";
@@ -193,7 +245,7 @@
       if (two === "**") {
         var endB = line.indexOf("**", i + 2);
         if (endB > i + 2) {
-          pushRun(runs, buf, false, false); buf = "";
+          pushText(runs, buf, false, false); buf = "";
           pushRun(runs, line.slice(i + 2, endB), true, false);
           i = endB + 2;
           continue;
@@ -206,8 +258,8 @@
           j++;
         }
         if (endI > i + 1) {
-          pushRun(runs, buf, false, false); buf = "";
-          pushRun(runs, line.slice(i + 1, endI), false, true);
+          pushText(runs, buf, false, false); buf = "";
+          pushText(runs, line.slice(i + 1, endI), false, true);
           i = endI + 1;
           continue;
         }
@@ -215,7 +267,7 @@
       buf += line.charAt(i);
       i++;
     }
-    pushRun(runs, buf, false, false);
+    pushText(runs, buf, false, false);
     return runs;
   }
 
@@ -325,6 +377,10 @@
     return blockHashes(card.clar).concat(blockHashes(card.answer));
   }
 
+  // The whole of the slider's filter, here and not in the shell so it is checked without a
+  // browser: a card clears the level, or it carries no weight and clears every level.
+  function shows(card, level) { return !card || !card.w || card.w >= level; }
+
   function readScales(raw, errors) {
     var out = {};
     var src = raw.scales || {};
@@ -414,6 +470,13 @@
     // has no say in the form: a card is `recall` or `read` because of the answer, not
     // because something was explained above it.
     var clar = isText(c.n) ? c.n : "";
+    // How much of the time he has this card is worth: an integer 1..100 the author writes, and
+    // absent is not zero. A card with no weight is shown at every level, so a deck that never
+    // opted in is the deck it was. It is deliberately left out of `authored` below - a weight is
+    // the author's judgement about a card, never a word on it, and a re-weighted deck coming up
+    // «new in this round» from end to end is exactly the failure that stamp exists to avoid.
+    var w = parseInt(c.w, 10);
+    if (!(w >= 1 && w <= 100)) w = 0;
     var material = {
       d: isText(c.d) ? c.d : "",
       code: isText(c.code) ? c.code : "",
@@ -445,6 +508,7 @@
       tag: isText(c.tag) ? c.tag : "",
       answer: hasAnswer ? c.a : null,
       clar: clar,
+      w: w,
       material: Object.freeze(material),
       gated: gated,
       reply: reply,
@@ -519,11 +583,15 @@
       cards: Object.freeze(cards),
       byId: Object.freeze(byId),
       from: Object.freeze(deckFrom),
+      // Whether this deck opted into weights at all. One card is enough, and no card at all is
+      // what keeps the slider off a deck that never asked for one.
+      weighted: cards.some(function (c) { return c.w > 0; }),
       errors: Object.freeze(errors),
       skipped: skipped
     });
   }
 
   return { build: build, stamp: stamp, markup: markup, blockHashes: blockHashes,
-    cardHashes: cardHashes, refSplit: refSplit, tagKey: tagKey, REPLY_MODES: REPLY_MODES };
+    cardHashes: cardHashes, refSplit: refSplit, tagKey: tagKey, shows: shows,
+    REPLY_MODES: REPLY_MODES };
 });

@@ -498,6 +498,15 @@ a:hover { color: var(--acc-tx-h); }
 .qn.hid { opacity: .42; text-decoration: line-through; }
 .qn.hid:hover { opacity: .75; }
 .qn.cur.hid { opacity: .72; }
+/* A cell the slider has just brought back into the deck. An outline and not the cell's own
+   border or background, because a cell already wears up to three of those - closed, current,
+   new in this round - and a fourth painted over them would take a state off the screen. It
+   fades by itself in two seconds; nothing in the shell comes back to take it away. */
+.qn.w-in { outline: 2px solid transparent; outline-offset: 2px; animation: w-in 2s ease-out 1; }
+@keyframes w-in {
+  0%, 55% { outline-color: var(--acc-fill); }
+  100% { outline-color: transparent; }
+}
 /* Sitting in the corner, the dot fell into the gap between two cells and read as the next
    cell's mark. Centred over its own cell there is nothing to misread. */
 .tdot {
@@ -635,6 +644,11 @@ a:hover { color: var(--acc-tx-h); }
 }
 .cref:hover { color: var(--acc-tx-h); }
 
+/* A link the author wrote as a link: the other pointer standing in the prose, so it reads the
+   same as the one above - the page's own warm accent, which the `a` rule already gives it, and
+   the same thin rule under it. No colour of its own is invented here, and nothing shouts. */
+.lnk { text-decoration: underline; text-underline-offset: 2px; }
+
 /* The way back, on the card's header line and only for the visit the pointer started. Quiet:
    it is navigation, like «history» beside it, not a decision about the card. */
 .bck {
@@ -685,6 +699,28 @@ a:hover { color: var(--acc-tx-h); }
 /* The same pill inside the 224px rail, where 34px and 14px would not leave room for the count
    that has to stand beside it. */
 .tog.c { height: 26px; padding: 0 11px; font-size: 12.5px; }
+
+/* Three stops beside the deck's name: the whole deck, what matters, only what matters most.
+   It was a range input and it shook, because a thing that is dragged can be dragged badly and
+   the words beside it changed width on every step. Nothing here is dragged and nothing here
+   has a width that can change: three cells of 22px, fixed, inside a row of fixed height, so
+   the control cannot push a single pixel of the card under it. */
+.wrg { display: flex; align-items: center; gap: 3px; flex: none; }
+.wsg {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 18px; padding: 0; flex: none;
+  background: transparent; border: 1px solid var(--btn-off-bd); border-radius: 999px;
+  cursor: pointer;
+}
+.wsg.on { background: var(--flag-on-bg); border-color: var(--flag-on-bd); }
+/* The bar is what the cell says, and it says it without a word in any language: narrower at
+   every stop to the right is less deck. */
+.wbr { height: 2px; border-radius: 1px; background: var(--mut); }
+.wsg:nth-child(1) .wbr { width: 12px; }
+.wsg:nth-child(2) .wbr { width: 8px; }
+.wsg:nth-child(3) .wbr { width: 4px; }
+.wsg:hover .wbr { background: var(--tx); }
+.wsg.on .wbr { background: var(--acc-fill); }
 
 /* ---- the keyboard panel ------------------------------------------------------------ */
 

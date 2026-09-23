@@ -25,6 +25,13 @@
     head_not_saving: "not saving",
     head_deck_round: "%1 · round %2",
 
+    // ---- the three stops that cut the deck down to the time he has ----
+    // Tooltips only: nothing here is ever drawn on the header line.
+    w_hint: "how much of the deck to show",
+    w_stop_all: "the whole deck",
+    w_stop_mid: "what matters",
+    w_stop_top: "only what matters most",
+
     // ---- the band a broken deck file earns ----
     band_title: "something is wrong in the deck file",
     band_skipped: "%1 %2 skipped",

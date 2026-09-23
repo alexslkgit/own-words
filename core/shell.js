@@ -15,6 +15,67 @@
   var cur = 0;
   var openBlock = null;
 
+  // ---- the three stops: how much of the deck the time he has is worth ---------------------
+  //
+  // Three positions and no fourth: the whole deck, what matters, only what matters most. The
+  // weight each stop cuts at is here and nowhere else, so the deck can be retuned by editing
+  // two numbers. The first one is not a number to tune: a stop that lets everything through
+  // is what makes the control safe to touch.
+  var W_STOPS = [0, 60, 85];
+  // One title per stop, in that order. They live in a tooltip and never on the header line:
+  // a word beside the control is a word that changes width, and that is what used to drag it
+  // left and right under his finger.
+  var W_TITLES = ["w_stop_all", "w_stop_mid", "w_stop_top"];
+
+  // His position, 0 to 2, and the only thing written to disk. It lives in a key of its own
+  // beside the deck's bucket and never inside it: the store performs exactly one migration and
+  // that migration throws `read` away, so a number about what is on screen has no business
+  // riding in the object his answers live in, and nothing in the export file, the import or the
+  // wipe has to learn about it.
+  var wPos = 0;
+  // The ids that arrived on the last move. Consumed by the render that draws them, so the mark
+  // flashes once and a redraw for any other reason does not flash it again.
+  var wIn = null;
+  var wantWFocus = false;
+  // Built once, handed back the same object on every render: see weigher().
+  var wBox = null;
+
+  function wKey() { return model.key ? model.key + ":w" : ""; }
+
+  // What the cards are filtered against, from the position he is on.
+  function wCut() { return W_STOPS[wPos] || 0; }
+
+  // A build before this one wrote the raw 0-100 it had dragged to. Anything past the last
+  // position is read as one of those and put back as the nearest stop at once, so the key holds
+  // a position after one load. The two values a position and an old level can both be, 1 and 2,
+  // are read as a position: after the first load on this build that is the only thing they are.
+  function wRead() {
+    var k = wKey();
+    if (!k) return 0;
+    var raw = null;
+    try { raw = window.localStorage.getItem(k); } catch (e) { return 0; }
+    var n = parseInt(raw, 10);
+    if (!(n > 0)) return 0;
+    if (n < W_STOPS.length) return n;
+    var near = 0;
+    for (var i = 1; i < W_STOPS.length; i++) {
+      if (Math.abs(n - W_STOPS[i]) < Math.abs(n - W_STOPS[near])) near = i;
+    }
+    wWrite(near);
+    return near;
+  }
+
+  function wWrite(n) {
+    var k = wKey();
+    if (!k) return;
+    // A position that cannot be saved is a position he sets again; it is not an answer, so a
+    // full quota here says nothing and must not raise the band that says his writing stopped
+    // saving.
+    try { window.localStorage.setItem(k, String(n)); } catch (e) { /* not his words */ }
+  }
+
+  function shows(card) { return DeckModel.shows(card, wCut()); }
+
   // Nothing written under this key in any round: the deck has just been opened for the first
   // time, and every hint on screen changes for that one visit (S3).
   function isFirst() { return Object.keys(store.raw().cards).length === 0; }
@@ -113,6 +174,7 @@
     else if (store.touched(card.id)) cls += " done";
     if (store.isNew(card)) cls += " nw";
     if (isHidden(card)) cls += " hid";
+    if (wIn && wIn[card.id]) cls += " w-in";
     return { cls: cls, discuss: hasWords(card.id) };
   }
 
@@ -137,7 +199,10 @@
   // The queue itself is derived in store.js, where it can be checked without a browser; all the
   // shell contributes is the side of the mark, because the deck declares its own marks and the
   // engine may not know one by id.
-  function inQueue(card) { return store.inQueue(card.id, markSide(card.id)); }
+  // The slider is part of «in the queue»: a card it has cut away is not being offered to him,
+  // so it is not counted in the rail, not walked to by «Next», and not what the queue filter
+  // finds. On a deck with no weights `shows` is true of every card and this is the line it was.
+  function inQueue(card) { return shows(card) && store.inQueue(card.id, markSide(card.id)); }
 
   // «Reread» over an empty card takes it out of the queue and greys its cell; the cell still
   // opens it. Over a card he has already written on it hides nothing. «Repeat everything» brings
@@ -154,6 +219,15 @@
     var n = 0;
     block.cards.forEach(function (c) { if (inQueue(c)) n++; });
     return n;
+  }
+
+  // The cards of a stack the slider leaves standing, plus the one he is actually on. A pointer
+  // in the prose may take him to a card under the level - a broken link is worse than a sentence,
+  // so it is followed - and a rail with no current cell anywhere reads as a page that lost him.
+  // Every other way into a card already goes through a filtered list.
+  function blockShown(block) {
+    var here = model.cards[cur] || null;
+    return block.cards.filter(function (c) { return shows(c) || c === here; });
   }
 
   // Something written in the one field is the whole of "there is something to discuss here":
@@ -177,9 +251,19 @@
     var n = model.cards.length;
     for (var i = 1; i <= n; i++) {
       var k = ((cur + dir * i) % n + n) % n;
-      if (!isHidden(model.cards[k])) return k;
+      if (shows(model.cards[k]) && !isHidden(model.cards[k])) return k;
     }
     return cur;
+  }
+
+  // The card after this one in the file, never one the slider has cut away. It is the fallback
+  // under an empty queue and nothing else, which is why it ignores «reread» the way it always did.
+  function after(index) {
+    for (var i = 1; i <= model.cards.length; i++) {
+      var k = (index + i) % model.cards.length;
+      if (shows(model.cards[k])) return k;
+    }
+    return index;
   }
 
   // Everything that moves to a card comes through here: a cell in the rail, a row of the
@@ -218,7 +302,33 @@
 
   function forward() {
     var k = nextUntouched();
-    go(k >= 0 ? k : (cur + 1) % model.cards.length);
+    go(k >= 0 ? k : after(cur));
+  }
+
+  // Moving the control is the one gesture that can say which cards just arrived, so it is the one
+  // place that computes it: the set is taken against the position he came from and it lasts until
+  // the next move. A mark left standing from three moves ago is a mark about nothing he remembers.
+  function wMove(next) {
+    if (next === wPos || next < 0 || next >= W_STOPS.length) return;
+    var was = {};
+    model.cards.forEach(function (c) { if (shows(c)) was[c.id] = true; });
+    wPos = next;
+    wWrite(next);
+    var came = {}, arrived = 0;
+    model.cards.forEach(function (c) {
+      if (shows(c) && !was[c.id]) { came[c.id] = true; arrived++; }
+    });
+    wIn = arrived ? came : null;
+    // The card he is on has just been cut away: the deck under him changed, so he lands on the
+    // first one still in it rather than reading a card the rail no longer shows. Nothing is
+    // recorded by that - only the arrow records, and this is not it.
+    if (model.cards[cur] && !shows(model.cards[cur])) {
+      for (var i = 0; i < model.cards.length; i++) {
+        if (shows(model.cards[i])) { cur = i; openBlock = model.cards[i].block; break; }
+      }
+    }
+    wantWFocus = true;
+    render();
   }
 
   // Following a pointer at another card, and the way back from it. `backTo` lasts as long as
@@ -298,10 +408,63 @@
 
     var right = st(el("div", "fx ac"), "gap: 12px;");
     if (failed) add(right, el("div", "new", S("head_not_saving")));
+    add(right, weigher());
     // The name of the deck, not the name of its storage bucket: the key is plumbing.
     add(right, el("div", "lbl", S("head_deck_round", model.copyPrefix || model.key, model.round)));
 
     return add(row, left, right);
+  }
+
+  // The control, in the header's own row, which is 26px of fixed height: nothing it does can move
+  // the card under it, and there is no second line for it to grow into. It exists only for a deck
+  // whose author weighted it - `model.weighted` is the whole condition - so a deck with no `w`
+  // anywhere is the page it was before this was written.
+  //
+  // It was a range input with the level written beside it, and it shook. Two reasons, both gone
+  // here. The words changed width on every step of the drag and shoved the track sideways under
+  // the finger holding it, so there are no words: three cells of a fixed size and nothing next to
+  // them. And render() empties the body, which destroyed the very control that asked for the
+  // redraw - so this node is built once and handed back the same object every time. header()
+  // appends it into the fresh page before the wipe, which moves it rather than replacing it, and
+  // a move re-cuts the card list around a control that never left his hands.
+  function weigher() {
+    if (!model.weighted) return null;
+    if (!wBox) {
+      wBox = el("div", "wrg");
+      wBox.setAttribute("role", "group");
+      wBox.setAttribute("aria-label", S("w_hint"));
+      for (var i = 0; i < W_STOPS.length; i++) add(wBox, stop(i));
+      // The arrows worked on the range input and they go on working here: after a move the focus
+      // is put back on this control, so the next key he presses has to be about it.
+      wBox.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        wMove(wPos + (e.key === "ArrowRight" ? 1 : -1));
+      });
+    }
+    wPaint();
+    return wBox;
+  }
+
+  // One cell. The bar inside it is narrower at every stop to the right, which is the whole of
+  // what it has to say: less deck. A glyph would be a word in a language, and this row has none.
+  function stop(i) {
+    var seg = el("button", "wsg");
+    seg.type = "button";
+    seg.title = S(W_TITLES[i]);
+    seg.setAttribute("aria-label", S(W_TITLES[i]));
+    seg.addEventListener("click", function () { wMove(i); });
+    return add(seg, el("div", "wbr"));
+  }
+
+  // The only thing about the control that a change touches.
+  function wPaint() {
+    if (!wBox) return;
+    for (var i = 0; i < wBox.childNodes.length; i++) {
+      var seg = wBox.childNodes[i];
+      seg.className = "wsg" + (i === wPos ? " on" : "");
+      seg.setAttribute("aria-pressed", i === wPos ? "true" : "false");
+    }
   }
 
   // The band the deck's own file earns for itself (N6). It is not foldable: a deck that lost
@@ -386,6 +549,9 @@
   // Search covers the whole card and the reader's own words. The author's notes are excluded
   // on purpose: he never sees them, so finding a card by one would be a card found by nothing.
   function matches(card) {
+    // The slider comes first and is not one of the filters: a card it cut away is out of the
+    // deck for now, so the search must not hand it back and the whole-deck view must not list it.
+    if (!shows(card)) return false;
     var q = query.trim().toLowerCase();
     if (q) {
       var rec = store.get(card.id) || {};
@@ -506,13 +672,18 @@
     // its cells and its description together: three things on one ground cannot be mistaken
     // for three rows of a list, which is what the old inset description was mistaken for.
     model.blocks.forEach(function (block) {
+      // A stack whose every card the slider cut away goes with them: a name over no cells is a
+      // row he can open onto nothing.
+      var live = blockShown(block);
+      if (!live.length) return;
       var open = block.n === openBlock;
       var row = el("button", "rrow" + (open ? " top" : ""));
       add(row, el("div", null, block.t || S("rail_block_n", block.n)));
       // The count survives as the one thing a count is good for: an answer to a question he
       // actually asked, on hover, instead of a column of numbers he never asked anything of.
+      // Out of the cards the slider left standing, because those are the cells under it.
       row.title = S("rail_block_title", blockQueue(block),
-        S.n(blockQueue(block), "cards_n"), block.cards.length);
+        S.n(blockQueue(block), "cards_n"), live.length);
       row.addEventListener("click", function () {
         // From the send form or the whole-deck view a stack means «take me back into the
         // deck, right here»; it opens, it does not fold shut on a click he never meant as a
@@ -526,7 +697,7 @@
       var stack = el("div", "stk none");
       add(stack, row);
       var wrap = el("div", "fx wrp qwrap");
-      block.cards.forEach(function (card) {
+      live.forEach(function (card) {
         var index = model.cards.indexOf(card);
         var s = cardState(card, index);
         var chip = el("button", s.cls, pad(index + 1));
@@ -594,7 +765,9 @@
   function reviewRow() {
     if (!MARK_AGAIN) return null;
     var out = 0;
-    model.cards.forEach(function (c) { if (store.reread(c.id, markSide(c.id))) out++; });
+    // Only what the slider left on screen: a number counting struck-through cells he cannot see
+    // is a number about another deck.
+    model.cards.forEach(function (c) { if (shows(c) && store.reread(c.id, markSide(c.id))) out++; });
     var on = store.review();
     if (!out && !on) return null;
 
@@ -759,6 +932,11 @@
   // because the brackets are what the author typed and what a search for it will look for.
   function inlineRun(r, opts) {
     if (!r.b) {
+      // The other pointer in the prose. It keeps whatever the run already was, the way a card
+      // pointer does: an address written inside an aside is still an aside, so the anchor sits
+      // in the `it` host rather than wearing the class itself, or `.it`'s muted grey would
+      // beat the colour every link on the page has.
+      if (r.u) return r.i ? add(el("span", "it"), linkTo(r)) : linkTo(r);
       if (!opts || !opts.jump) return el("span", r.i ? "it" : null, r.t);
       // The pointer keeps whatever the run already was: «_all of it in card 29_» is how the
       // author writes one, and an aside that stops being an aside to become a link would be
@@ -771,6 +949,19 @@
     }
     var key = DeckModel.tagKey(r.t);
     return el("span", key ? "em tg tg-" + key : "em", r.t);
+  }
+
+  // A link the author wrote as a link. It opens in a new tab, and that is not a habit: a deck
+  // page holds an answer he is in the middle of typing, and a click that navigated this tab
+  // away would take the unsent draft with it. `rel="noopener"` because a `_blank` target hands
+  // the page it opens a handle back on this one, and nothing outside needs one.
+  // The text is the address as the model read it; `el` sets textContent, so it stays characters.
+  function linkTo(r) {
+    var a = el("a", "lnk", r.t);
+    a.href = r.u;
+    a.target = "_blank";
+    a.rel = "noopener";
+    return a;
   }
 
   // A pointer at card 33 behaves like the cell numbered 33 in the rail: one press and he is on
@@ -1586,11 +1777,25 @@
     // Last, because every scroller's mask is a fact about its own scrollHeight, and the line
     // above has just changed one of them.
     masks(page);
+    // The mark on a cell the slider just brought back is consumed by the render that drew it:
+    // the fade is two seconds of CSS that ends by itself, and a redraw half a minute later for
+    // some other reason must not flash cells that arrived long ago.
+    wIn = null;
     if (wantSearchFocus) {
       wantSearchFocus = false;
       wantFocus = false;
       var box = page.querySelector(".tf input");
       if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+      return;
+    }
+    // He is still on the control: the arrow keys have to go on moving it, and the cursor must not
+    // land in the answer box of a card he has not chosen to deal with yet. The cell he is on is
+    // the one that takes the focus, which is where a segmented control puts it.
+    if (wantWFocus) {
+      wantWFocus = false;
+      wantFocus = false;
+      var here = page.querySelector(".wsg.on");
+      if (here) here.focus();
       return;
     }
     if (wantFocus) {
@@ -1774,7 +1979,15 @@
       round: model.round,
       onError: function (kind) { failed = kind; if (store) render(); }
     });
-    openBlock = model.cards.length ? model.cards[0].block : null;
+    // A second deck on the same page is a second control: the cached node belongs to the model
+    // it was built against.
+    wBox = null;
+    wPos = wRead();
+    // The page opens on the first card the control leaves standing, not on the first card in the
+    // file: a stop he set last time must not land him on a card the rail is no longer showing.
+    var first = model.cards.filter(shows)[0] || model.cards[0] || null;
+    cur = first ? model.cards.indexOf(first) : 0;
+    openBlock = first ? first.block : null;
     MARK_DONE = sideMark("done");
     MARK_AGAIN = sideMark("mine");
     render();

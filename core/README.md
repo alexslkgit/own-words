@@ -34,6 +34,8 @@ window.DECK = {
         { id: "s1",          // short, stable, unique across the deck
           q: "the question",
           tag: "eyebrow above the answer",
+          w: 90,                           // 1-100, how much of the time he has this card is
+                                           // worth. ABSENT = always shown, at every level.
           a: "the prepared answer",        // absent = there is no right answer
           n: "notes: his own questions answered, terms explained",       // absent = no such block
           gate: false,                     // per-card override of DECK.gate
@@ -52,6 +54,30 @@ nowhere to go; no `q` means there is nothing to answer; a repeated `id` means th
 would silently share the first one's record. All three are skipped, counted in `model.skipped`,
 and named in `errors`. The band on screen says how many were lost and how many loaded. A deck
 where nothing at all loads gets the whole card area instead of an empty one.
+
+**`w`, and the three stops it feeds.** An integer 1-100 the author hangs on a card: how likely
+it is to be needed in the time the reader actually has. A card with no `w` is **always** shown,
+at every stop, so a deck that never opted in behaves exactly as it did before this field
+existed; anything outside 1-100 reads as no `w` at all. One weighted card anywhere in the deck
+is what puts the control on screen (`model.weighted`), and `DeckModel.shows(card, level)` is the
+whole of the filter, so it is checked without a browser.
+
+The control has three positions and no fourth: the whole deck, what matters, only what matters
+most. The weight each one cuts at is `W_STOPS` at the head of the slider code in `core/shell.js`
+and nowhere else, so the deck is retuned by editing two numbers. It carries no text of any kind
+beside it: a word next to a control changes width, and a control whose neighbour changes width
+slides sideways under the finger holding it. It is also built once and handed back as the same
+node on every render, because `render()` empties the body and was destroying the very control
+that had asked for the redraw. A move re-cuts the card list and nothing else. His position, `0`,
+`1` or `2`, lives in `<key>:w` in `localStorage`, beside the deck's bucket and never inside it;
+a value above the last position was written by the build that had a 0-100 slider and is read as
+the nearest stop and put back as that stop on the first load.
+
+**`w` is not in the stamp,** and that is the point of it. The stamp is what the author *wrote*
+on the card; a weight is his judgement about the card, and a re-weighted deck coming up «new in
+this round» from end to end is the one failure the stamp exists to avoid. Weighting a deck that
+had none moves no card's stamp and no card's position: the filter is a view, and the number on a
+card in the sent form is still its place in the whole deck.
 
 **Marks.** `side: "mine"` is his side of the line, `side: "done"` is closed. A deck with no
 right answer simply never declares a mark meaning «I know it», so the label cannot lie. The
@@ -124,7 +150,7 @@ explained above it.
 
 ## The markup of a prepared answer
 
-`a` is written in six rules and nothing else is markup. The model returns a tree of runs, never
+`a` is written in seven rules and nothing else is markup. The model returns a tree of runs, never
 a string of HTML, and the shell turns it into text nodes, so an author's text has no path to
 `innerHTML`.
 
@@ -133,6 +159,7 @@ a string of HTML, and the shell turns it into text nodes, so an author's text ha
 | a blank line | a paragraph break |
 | `**phrase**` | the one or two phrases that carry the card |
 | `_phrase_` | the aside, the part he may skip |
+| `http://…` or `https://…` | a link, and the only rule with no marker around it |
 | a line that is exactly `Diagram:` | opens a monospace block, closed by the next blank line |
 | a line that is exactly `Flow:` | opens a drawn flow, closed by the next blank line |
 | a line that is exactly `Tree:` | opens a drawn decision tree, closed by the next blank line |
@@ -226,6 +253,32 @@ leave, so the set of blocks he has read is untouched by it. For the length of th
 `← back to NN` stands on the card's header line; the next move he makes by any other means ends
 the visit and takes it away.
 
+### A link
+
+The only rule that reads the thing itself instead of a marker around it, because nobody wraps an
+address in anything: the author pastes the URL and expects to press it. `http://` or `https://`
+and then anything that is not a space, and nothing else. A bare `www.`, a host with a port and no
+scheme, an `@` address and any other scheme all stay prose, deliberately: a rule that misses a
+link costs one copy-paste, a rule that swallows a sentence rewrites an answer already written.
+
+What a sentence puts after a link is not part of it. `. , ; : ! ? ) » ] } " '` come off the end of
+the match and stay in the paragraph as themselves, so «…see https://host/a.» links to `https://host/a`
+and keeps its full stop. `https://` with nothing left behind it after that trim is a word, not an
+address. Nothing else is done to it: the `href` is the characters the author typed, with no scheme
+added, nothing normalised and nothing encoded.
+
+The nesting is the decision the card pointer already made, for the same reason. A link written
+inside `_…_` stays an aside and is drawn as one; a link written inside `**…**` is left alone as
+bold text, because a bold run is already a marker and may be a tag. Inside a `Diagram:`, a `Flow:`
+or a `Tree:` nothing inline is read at all, so an address there is the characters it is.
+
+A link run is the one run that carries a third field, `u`, the address, and it is never merged
+into the run beside it. On screen it is an `<a>` with `target="_blank"` and `rel="noopener"`: a
+card may hold an answer he is in the middle of typing, and a click that navigated this tab away
+would take the unsent draft with it. It wears the page's own accent colour, the one every `a`
+already has, and the same thin rule under it as the card pointer, since the two are the same
+gesture standing in the same prose.
+
 ### Air
 
 A paragraph is 14 px under the one above it, a block of the card 18 px, and every diagram takes
@@ -272,6 +325,12 @@ One `localStorage` key, one JSON object:
   flags: { "s1": { prio: false, diff: true } },     // per card, NOT per round
   read: { "s1": ["a1b2c3d4", "…"] } }               // per card, NOT per round
 ```
+
+Beside it, and never inside it, one more key: `<key>:w`, his position on the three stops as a
+bare number, `0`, `1` or `2`. It is out of the object on purpose. The store performs exactly one
+migration and that migration throws `read` away; a number about what is on screen has no
+business in the object his answers live in, and nothing in the export, the import or the wipe
+has to learn about it. A missing or unreadable value is 0, which shows the whole deck.
 
 Per record:
 
@@ -449,6 +508,6 @@ becomes the `discuss` flag, and only his own messages travel. It never writes to
 node core/selftest.js
 ```
 
-324 checks, no browser and no dependencies. Real decks are never opened for testing, because every
+404 checks, no browser and no dependencies. Real decks are never opened for testing, because every
 load writes into his real storage. `decks/_lab/` exists for that, and its two deliberate
 errors are what the deck-error screen is built against.
