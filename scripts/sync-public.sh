@@ -84,6 +84,7 @@ cd "$PUBLIC"
 git add -A -- core
 if ! git diff --cached --quiet; then
     commit_msg="$(cd "$PRIVATE" && git log -1 --pretty=%s)"
+    case "$commit_msg" in core:*) ;; *) commit_msg="core: sync engine changes" ;; esac
     git commit -q -m "$commit_msg"
     (git push -q origin main >/dev/null 2>&1 &)
     log "OK: committed and pushed (\"$commit_msg\")"
