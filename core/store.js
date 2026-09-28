@@ -29,7 +29,7 @@
   function isText(v) { return typeof v === "string" && v.trim() !== ""; }
   function recKey(id, round) { return id + "|" + round; }
 
-  function empty() { return { v: SCHEMA, cards: {}, extra: {}, prefs: {}, flags: {}, read: {} }; }
+  function empty() { return { v: SCHEMA, cards: {}, extra: {}, prefs: {}, flags: {}, read: {}, simple: {} }; }
 
   // The two toggles are about the card, not about a round of it: «hard» does not stop being
   // true because a new round started, and that is the whole point of being able to come back to
@@ -58,7 +58,8 @@
         if (parsed && typeof parsed === "object" && parsed.cards) {
           var was = typeof parsed.v === "number" ? parsed.v : 0;
           data = { v: SCHEMA, cards: parsed.cards || {}, extra: parsed.extra || {},
-            prefs: parsed.prefs || {}, flags: parsed.flags || {}, read: parsed.read || {} };
+            prefs: parsed.prefs || {}, flags: parsed.flags || {}, read: parsed.read || {},
+            simple: parsed.simple || {} };
           // The one-time wipe. A bucket written under an older number carries read sets made by
           // the old rule, and the only honest thing to do with them is throw them away: he never
           // confirmed a single one of those cards. Read sets and nothing else - his answers,
@@ -304,6 +305,25 @@
       return save();
     }
 
+    // ---- simpler, and never longer --------------------------------------------------------
+    //
+    // Per card and never per round, beside `flags` and `read` for the same reason: what he
+    // marked as unclear in an answer, the request he last built from it, the simpler version he
+    // pasted back, and the notes on single words. Every piece of it carries the stamp of the text
+    // it was made on, so a rewritten answer strands it rather than misplacing it - see
+    // DeckModel.simpleNow(). The shell owns the shape; this is where it is kept. The same
+    // three-way api as flag(): `undefined` reads, `null` clears, an object writes it whole.
+    function simple(id, value) {
+      if (value === undefined) {
+        var got = data.simple[id];
+        return got && typeof got === "object" ? JSON.parse(JSON.stringify(got)) : null;
+      }
+      if (!isText(id)) return false;
+      if (value === null) delete data.simple[id];
+      else data.simple[id] = JSON.parse(JSON.stringify(value));
+      return save();
+    }
+
     // ---- the queue -----------------------------------------------------------------------
     //
     // Has he written anything on this card in this round? A draft counts: it is on the screen,
@@ -372,7 +392,8 @@
       }
       if (mode === "replace") {
         data = { v: SCHEMA, cards: incoming.cards || {}, extra: incoming.extra || {},
-          prefs: incoming.prefs || {}, flags: incoming.flags || {}, read: incoming.read || {} };
+          prefs: incoming.prefs || {}, flags: incoming.flags || {}, read: incoming.read || {},
+          simple: incoming.simple || {} };
         return { ok: save(), why: "", added: Object.keys(data.cards).length, updated: 0 };
       }
       var added = 0, updated = 0;
@@ -400,6 +421,11 @@
       // would be the one way this thing can grow without bound.
       Object.keys(incoming.read || {}).forEach(function (id) {
         if (Array.isArray(incoming.read[id]) && !data.read[id]) data.read[id] = incoming.read[id].slice();
+      });
+      // The simpler versions and the marks: the same rule again, for the same reason.
+      Object.keys(incoming.simple || {}).forEach(function (id) {
+        var theirs = incoming.simple[id];
+        if (theirs && typeof theirs === "object" && !data.simple[id]) data.simple[id] = theirs;
       });
       return { ok: save(), why: "", added: added, updated: updated };
     }
@@ -450,7 +476,7 @@
       touched: touched, history: history, markSent: markSent, stats: stats,
       extra: extra, pref: pref, flag: flag, setAside: setAside,
       readBlocks: readBlocks, markRead: markRead, leaveRead: leaveRead, marksRead: marksRead,
-      wasRead: wasRead, forgetRead: forgetRead,
+      wasRead: wasRead, forgetRead: forgetRead, simple: simple,
       wrote: wrote, reread: reread, hidden: hidden, review: review, inQueue: inQueue,
       exportAll: exportAll, importAll: importAll, adopt: adopt,
       raw: function () { return data; },

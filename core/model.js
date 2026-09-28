@@ -381,6 +381,103 @@
   // browser: a card clears the level, or it carries no weight and clears every level.
   function shows(card, level) { return !card || !card.w || card.w >= level; }
 
+  // ---- simpler, and never longer ----------------------------------------------------------
+  //
+  // After the answer is shown he marks what he does not understand and asks for a simpler
+  // version. The whole point is that the card gets clearer WITHOUT growing: a card that turned
+  // ten times longer through follow-ups is the card he never got past. So the one number that
+  // decides everything is a word count, and it lives here, in one function, so the budget in the
+  // request and the check on the reply can never count two different ways.
+  //
+  // A word is a whitespace-separated token with at least one letter or digit in it: «->», a
+  // lone dash or a bullet is not a word, «[Circle(),» is one.
+  var WORD = /[\p{L}\p{N}]/u;
+
+  function words(text) {
+    if (typeof text !== "string" || !text) return 0;
+    return text.split(/\s+/).filter(function (t) { return WORD.test(t); }).length;
+  }
+
+  // The most a note about one word may run to. It is shown under the answer and never merged
+  // into it, and it still may not be an essay: an explanation that grows is the same failure
+  // as an answer that grows.
+  var DEEP_MAX = 40;
+
+  // A gloss is the short plain explanation the simpler version puts in brackets right after a
+  // word he marked: «(the list of method addresses)». It is drawn muted, so the sentence still
+  // reads as a sentence. Brackets holding one to six words are a gloss; anything longer, and
+  // `f()` with nothing inside, is the author's own text and stays as it is.
+  var GLOSS = /\(([^()\n]+)\)/g;
+  var GLOSS_MAX = 6;
+
+  function glossSplit(text) {
+    var out = [];
+    if (typeof text !== "string" || text === "") return out;
+    var re = new RegExp(GLOSS.source, "g");
+    var at = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      var n = words(m[1]);
+      if (n < 1 || n > GLOSS_MAX) continue;
+      if (m.index > at) out.push({ t: text.slice(at, m.index), g: false });
+      out.push({ t: m[0], g: true });
+      at = m.index + m[0].length;
+    }
+    if (at < text.length) out.push({ t: text.slice(at), g: false });
+    return out;
+  }
+
+  // `simple` on a card, as the author's side writes it back: the simpler text, the details it
+  // dropped, the notes on single words, and `base`, the stamp of the answer it was made from.
+  // Anything short of a text and a base is no version at all.
+  function readSimple(s) {
+    if (!s || typeof s !== "object" || !isText(s.text) || !isText(s.base)) return null;
+    return Object.freeze({
+      text: s.text,
+      base: String(s.base).trim(),
+      removed: Object.freeze(arr(s.removed).filter(isText)),
+      deep: Object.freeze(arr(s.deep).filter(function (d) { return d && isText(d.w) && isText(d.t); })
+        .map(function (d) { return Object.freeze({ w: d.w, t: d.t }); }))
+    });
+  }
+
+  // Which simpler version, if any, stands on the card instead of the answer. Two can exist: the
+  // one in the deck file, written by the author's side, and the one pasted in this browser. Both
+  // count only while their `base` is the stamp of the answer as it is NOW - a version of an
+  // answer the author has since rewritten is a version of text that is no longer there, and it
+  // is ignored rather than shown. The paste stands until the deck file brings a version it had
+  // not seen when the paste was made, because that one is newer.
+  //
+  // The budget is kept here too, mechanically: a version with more words than the answer is
+  // not shown at all, `over` says so, and the shell prints why.
+  function simpleNow(card, local) {
+    if (!card || !card.answer) return null;
+    var base = stamp(card.answer);
+    var file = card.simple && card.simple.base === base ? card.simple : null;
+    var got = local && local.got && local.got.base === base && isText(local.got.text) ? local.got : null;
+    var fresh = !!file && (!got || got.fileAt !== stamp(file.text));
+    var pick = fresh ? file : (got || file);
+    if (!pick) return null;
+    var budget = words(card.answer);
+    var n = words(pick.text);
+    var deep = [];
+    function note(d) {
+      if (!d || !isText(d.w) || !isText(d.t) || words(d.t) > DEEP_MAX) return;
+      deep = deep.filter(function (x) { return x.w !== d.w; });
+      deep.push({ w: d.w, t: d.t });
+    }
+    if (file) file.deep.forEach(note);
+    arr(local && local.deep).forEach(function (d) { if (d && d.base === base) note(d); });
+    return {
+      text: pick.text,
+      removed: arr(pick.removed).filter(isText),
+      from: pick === file ? "file" : "local",
+      words: n,
+      budget: budget,
+      over: n > budget,
+      deep: deep
+    };
+  }
+
   function readScales(raw, errors) {
     var out = {};
     var src = raw.scales || {};
@@ -515,6 +612,9 @@
       form: deriveForm(hasAnswer, gated, reply.mode),
       ref: Object.freeze(arr(c.ref).filter(isText)),
       from: Object.freeze(from),
+      // Deliberately outside `authored`: a simpler version is made FROM the answer and says
+      // nothing new about the card, so writing one must not turn the card «new in this round».
+      simple: hasAnswer ? readSimple(c.simple) : null,
       stamp: stamp(authored)
     });
   }
@@ -575,6 +675,9 @@
       round: round,
       title: isText(raw.title) ? raw.title : "",
       copyPrefix: isText(raw.copyPrefix) ? raw.copyPrefix : (isText(raw.title) ? raw.title : ""),
+      // One optional line on what the deck is for. Nothing on screen reads it; it rides in the
+      // request for a simpler answer, which has to know which details the deck can do without.
+      purpose: isText(raw.purpose) ? raw.purpose : "",
       gate: deck.gate,
       scales: Object.freeze(scales),
       marks: Object.freeze(marks),
@@ -593,5 +696,6 @@
 
   return { build: build, stamp: stamp, markup: markup, blockHashes: blockHashes,
     cardHashes: cardHashes, refSplit: refSplit, tagKey: tagKey, shows: shows,
+    words: words, glossSplit: glossSplit, simpleNow: simpleNow, DEEP_MAX: DEEP_MAX,
     REPLY_MODES: REPLY_MODES };
 });

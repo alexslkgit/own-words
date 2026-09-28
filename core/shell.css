@@ -759,6 +759,50 @@ a:hover { color: var(--acc-tx-h); }
   }
 }
 
+/* ---- simpler, and never longer ----------------------------------------------------- */
+
+/* The marks he puts on a revealed answer. A word he did not understand is underlined in dots,
+   a piece he wants rewritten is washed in the accent, and nothing about an unmarked word
+   changes but the pointer: the answer reads exactly as it did until he touches it. */
+.w { cursor: pointer; border-radius: 3px; }
+.w.wm { text-decoration: underline dotted var(--acc-tx); text-underline-offset: 3px; color: var(--acc-tx-h); }
+.w.wp { background: var(--flag-on-bg); }
+/* A gloss the simpler version put in brackets after a word: muted, so the sentence still reads
+   as one sentence. */
+.gls { color: var(--mut); font-size: .93em; }
+/* The two buttons a selection earns, floating over it. */
+.stb {
+  position: fixed; z-index: 5; display: flex; gap: 6px; padding: 6px;
+  background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: 12px; box-shadow: var(--card-sh);
+}
+.stb button {
+  font: inherit; font-size: 12.5px; font-weight: 500; border: 0; background: transparent;
+  color: var(--acc-tx); padding: 6px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+}
+.stb button:hover { background: var(--flag-on-bg); }
+/* The bar that counts the marks and sends them. It sticks to the bottom of the card's body so a
+   long answer can be marked from top to bottom without scrolling back to it. */
+.sbar {
+  position: sticky; bottom: 0; z-index: 1;
+  background: var(--card-bg); border: 1px solid var(--card-bd); border-radius: 16px; box-shadow: var(--card-sh);
+}
+/* Quiet text buttons: «simpler still», «deeper on a word», «clear marks». */
+.qbtn {
+  font: inherit; font-size: 12.5px; line-height: 1.5; color: var(--mut); background: none; border: 0;
+  padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; text-align: left;
+}
+.qbtn:hover, .qbtn.on { color: var(--acc-tx); }
+/* The length line's two bars: what the answer was, and what it is now. */
+.smt { height: 5px; border-radius: 3px; background: var(--dim); }
+.smt.on { background: var(--acc-fill); }
+.sorig { opacity: .75; }
+.serr { font-size: 12.5px; line-height: 1.5; color: var(--acc-tx); }
+@media (max-width: 1100px) {
+  /* The card's own footer sticks to the bottom of the window here, and the bar would hide under
+     it: it stands in its place under the answer instead. */
+  .sbar { position: relative; }
+}
+
 /* ---- rows of the page ------------------------------------------------------------- */
 
 /* The air over the card was 106px of nothing - 32 above the header line, the 26px line itself,

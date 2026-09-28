@@ -14,6 +14,8 @@ window.DECK = {
   copyPrefix: "…",           // the short human name of the deck: it heads the sent form
                              // AND the page header. Defaults to title; the key is never shown.
   gate: true,                // deck-wide default: is a prepared answer hidden until he answers
+  purpose: "…",              // optional: what the deck is for, one line. Goes into a request
+                             // for a simpler answer, which has to know what it may drop.
 
   from: [{ round: 3, t: "…" }],   // LEAVE ABSENT. It is drawn above EVERY card, so he reads the
                                   // same paragraph once per card; he asked for it gone twice.
@@ -42,6 +44,8 @@ window.DECK = {
           d: "material",                   // an extra plain block under the answer
           reply: { mode: "scale", scale: "epworth" },   // or "text" | "choice" | "none"
           from: [{ round: 2, t: "the assistant's reply to his answer of that round" }],
+          simple: { text: "…", removed: ["…"], base: "a1b2c3d4",   // written back by a skill,
+                    deep: [{ w: "word", t: "…" }] },               // never by hand: see below
           ref: ["author's notes"]          // never rendered, never sent
         }
       ] }
@@ -115,13 +119,13 @@ because they are what he asked about last and what he is coming back to read; th
 under them because it is the thing the card is, and the thing that is still there when he
 scrolls. 16 px between them, the same 18 px above the first of them as any block of the card.
 
-The upper block is drawn in a tint of its own — the answer is warm neutral, «from Claude» is warm
-accent, the notes are the cool one — and is the only box on the card that wears a name, a small
+The upper block is drawn in a tint of its own (the answer is warm neutral, «from Claude» is warm
+accent, the notes are the cool one) and is the only box on the card that wears a name, a small
 muted «Notes». It carries one because it is the exception: the answer needs no label, since
 the card is the answer, while a block of side answers standing over the answer does have to say
 what it is.
 
-`n` takes exactly the markup `a` takes — paragraphs, `Diagram:`, `Flow:`, `Tree:`, pills,
+`n` takes exactly the markup `a` takes: paragraphs, `Diagram:`, `Flow:`, `Tree:`, pills,
 `_asides_`, and a pointer at another card. Both are rewritten whole by the author every round
 and never appended to; neither one ever travels in the sent form.
 
@@ -130,7 +134,7 @@ about an answer he has not been shown yet, and half of them give it away.
 
 **`n` is in the stamp,** so a rewritten note is «new in this round» exactly like a rewritten
 answer. It joins the stamp only when it is actually written, so every card that carries no `n`
-hashes to the number it hashed to before the field existed — a stamp that shifted by one
+hashes to the number it hashed to before the field existed; a stamp that shifted by one
 separator would have turned every card of every deck new on the next load. `core/selftest.js`
 pins that number.
 
@@ -236,15 +240,15 @@ branch's own left border, so it starts and stops exactly where the branch does.
 
 ### A pointer at another card
 
-Nothing is written for this: the author points at a card the way he always did — the word for a
-card, in one of three endings, then NN — and the shell turns that inside a prepared answer into a
+Nothing is written for this: the author points at a card the way he always did (the word for a
+card, in one of three endings, then NN) and the shell turns that inside a prepared answer into a
 control that opens card NN. NN is the number on the cell in the rail, the only number of a card
 the reader has ever been shown. The pattern is `CARD_REF` in `core/model.js`, written in `\uXXXX`
 escapes like every other literal there. `DeckModel.refSplit(run)` is the whole of the decision
 and it is checked without a browser: three endings and no others, so the genitive and the counted
 form stay prose, a bare number stays a number, a word that merely ends in the pointer word points
 at nothing, and a number no
-card carries is left as the text it is — a broken link is worse than a sentence. A pointer written
+card carries is left as the text it is: a broken link is worse than a sentence. A pointer written
 inside `_…_` stays an aside; one written inside `**…**` is left alone, because a bold run is
 already a marker and may be a tag.
 
@@ -305,8 +309,85 @@ DeckModel.markup(text)
 //     src: "Diagram:\n1M DAU -> 115 rps" } ]
 ```
 
-`src` is the block's own source, trimmed, and it is what a per-block hash is taken of — see
+`src` is the block's own source, trimmed, and it is what a per-block hash is taken of; see
 «the blocks he has read» below.
+
+## Simpler, and never longer
+
+Once an answer is shown, he can tap a word he does not understand (a dotted underline), or
+select a phrase and pick «not clear» or «simplify this piece» from the small toolbar over it. A
+bar at the foot of the card counts what is marked and how many words the answer has now; its
+button builds a request for a simpler answer. The marks are kept per card, against the stamp
+of the text they were made on, so a rewritten answer strands them instead of laying them over
+other words. Nothing of this exists behind a shut gate: the answer comes first.
+
+**The page never runs a model.** The request is a filled form he copies, built in `send.js`
+beside the round's form and copied the same way. Its first line is a fixed token, so a receiver
+can tell it from a round's answers without reading the rest:
+
+```
+[own-words simplify]      a simpler answer: carries `budget: N`, the marked words and pieces
+[own-words deeper]        a note on one word: carries `word: …`, at most 40 words
+```
+
+The field lines under the token (`deck:`, `card:`, `base:`, `budget:` or `word:`), the token and
+the reply block are a protocol and read the same in every language; everything around them goes
+through `S()`. The request carries the deck's title and `purpose`, the question, the text it is
+made from, what is marked, and the eight rules the receiver must follow:
+
+1. At most `budget` words, hard; about two thirds is the aim.
+2. Every marked word is replaced with plain words, or kept with a gloss in brackets of at most 6 words.
+3. No new unexplained terms.
+4. Every marked piece is rewritten in plain words, same facts.
+5. Details the deck's purpose does not need are dropped and listed in `removed`.
+6. No fact that is not in the original; the core claim and any one-line rule stay.
+7. «Simpler still» is the same request made from the simpler text, with its own count as budget.
+8. «Deeper on a word» is a note of at most 40 words, shown under the answer, never merged into it.
+
+**`budget` is the word count of the text the request is made from**, and `DeckModel.words()` is
+the only counter, so the request and the check can never count two ways: a token with at least
+one letter or digit in it is a word, a lone dash or an arrow is not. `base` is always
+`DeckModel.stamp(card.answer)`, the stamp of the answer, also when the request is made from a
+simpler version.
+
+**The reply comes back one of two ways.**
+
+- *Into the deck file.* A skill that has the deck on disk writes `simple` on the card and never
+  touches `a`. A note on a word goes into `simple.deep`; with no `simple` on the card yet there is
+  nowhere to hang it, and the skill hands the block back to be pasted instead.
+- *Pasted into the page.* The request ends by asking for one fenced block, which the page reads
+  with `parseReply()`:
+
+  ````
+  ```own-words
+  kind: simple
+  card: s1
+  base: a1b2c3d4
+  text:
+  the simpler answer, as many lines as it needs
+  removed:
+  - a short phrase per dropped detail
+  ```
+  ````
+
+  A note has `kind: deeper`, a `word:` line and no `removed:`. The last block in the paste wins,
+  since a pasted request carries a blank one of its own, and the block's body without its fence
+  is enough. What is read is kept in this browser (below).
+
+**The page keeps the budget, whatever the receiver did.** `check()` refuses a reply for another
+card, one made from an answer that has since changed, one with no text, and one with more words
+than its budget, and says which; a refused reply is never shown. The same count is applied again
+when a version is drawn: `DeckModel.simpleNow(card, local)` shows a version only while its `base`
+is the stamp of the answer as it is now, and one over the answer's count is not shown but
+explained. Between a version in the file and one pasted here, the paste stands until the file
+brings a version it had not seen when the paste was made.
+
+**`simple` is not in the stamp.** It is made from the answer; it is not something the author
+wrote on the card, so a card that got a simpler version is not «new in this round». When one
+stands it is drawn in the answer's place with its glosses muted, a line «was X, now Y words», a
+fixed-label toggle for the original, the dropped details folded to one line, the notes on words,
+and a primary button that takes him to his own answer box: the point of a simpler answer is to
+answer the card in his own words.
 
 ## The four ways to answer
 
@@ -323,7 +404,8 @@ One `localStorage` key, one JSON object:
   extra: { "3": "free-form box for that round" },
   prefs: { theme: "…", review: false },   // review = «repeat everything», per deck
   flags: { "s1": { prio: false, diff: true } },     // per card, NOT per round
-  read: { "s1": ["a1b2c3d4", "…"] } }               // per card, NOT per round
+  read: { "s1": ["a1b2c3d4", "…"] },               // per card, NOT per round
+  simple: { "s1": { marks, ask, got, deep } } }     // per card, NOT per round
 ```
 
 Beside it, and never inside it, one more key: `<key>:w`, his position on the three stops as a
@@ -371,8 +453,8 @@ which is what it always meant.
 **The blocks he has read, and the indent they earn.** He rereads whole cards because nothing on
 one says which part of it he has seen before. The rule is the one code uses: a block of the answer
 he has already been shown is indented 20 px and dropped to .6 opacity (`.seen`), and a block that
-is new or rewritten stays flush left at full contrast. The unit is a block of `markup()` — a
-paragraph, a `Diagram:`, a `Flow:`, a `Tree:` — and never a line or a card.
+is new or rewritten stays flush left at full contrast. The unit is a block of `markup()` (a
+paragraph, a `Diagram:`, a `Flow:`, a `Tree:`) and never a line or a card.
 
 ```js
 DeckModel.blockHashes(card.answer)   // one hash per block of one field, in the order they render
@@ -385,7 +467,7 @@ store.wasRead(id, hash)              // the whole of what `seen` means on screen
 store.forgetRead()                   // «reset what you have read» in the settings panel
 ```
 
-A block's hash is `DeckModel.stamp` of that block's own trimmed source — the same hash the card's
+A block's hash is `DeckModel.stamp` of that block's own trimmed source, the same hash the card's
 stamp is made with, because «this piece changed» and «this card changed» are one question
 asked of two sizes of text. `markup()` puts that source on every block as `src`, and the hashes
 are taken from there rather than from a second split on blank lines: a `Diagram:` heading opens a
@@ -393,13 +475,13 @@ block with no blank line in front of it, so a naive split would hash text the sc
 as one thing.
 
 **One set per card, not one per field.** `cardHashes` is what the leave records, and it puts the
-notes first because that is the order they are drawn in — the order lives in the model so
+notes first because that is the order they are drawn in; the order lives in the model so
 «above the answer» is checked without a browser. A block the author moves out of `a` and up into `n`
 word for word keeps its hash and goes on reading as seen, which is the whole reason the set is
 not split by field. The same indent-and-dim applies inside both boxes.
 
 **The set is written once, when he presses the arrow,** and it is written whole: the hashes of the
-text as it stood at that moment, nothing older. That is the bound — it can never be longer than
+text as it stood at that moment, nothing older. That is the bound: it can never be longer than
 the number of blocks on the card. A rewritten block falls out of it by itself, because the old
 hash is no longer in the text and the new one was never recorded, which is exactly what makes the
 rewrite read as new.
@@ -418,8 +500,15 @@ read.
 It is per card and never per round, beside `cards` for the same reason `flags` is. It rides in
 the export file, which is his only backup of this browser, and it is nowhere in the sent form: a
 list of hashes is a note about what he looked at, not a word he wrote. A merge fills in only the
-cards this browser has never recorded — merging two sets would be the one way this can grow
+cards this browser has never recorded; merging two sets would be the one way this can grow
 without bound. An older bucket with no `read` key reads as nothing-read.
+
+**`simple` is per card for the same reason:** the marks on a text, the last request built from
+it, the version pasted here (`got`, with the `base` it was made from) and the notes on words. The
+shell owns the shape and `store.simple(id, value)` keeps it: `undefined` reads a copy, `null`
+clears, an object is written whole. It rides in the export, a merge fills in only the cards this
+browser has none for, and an older bucket with no `simple` key reads as nothing marked. It is
+not a schema change: nothing in it is migrated and `SCHEMA` stays at 2.
 
 **The wipe at `v: 2`.** A bucket written under an older schema carries read sets made by the old
 rule, and fixing the rule cannot undim them: it stops new marks and leaves the wrong old ones
@@ -508,6 +597,6 @@ becomes the `discuss` flag, and only his own messages travel. It never writes to
 node core/selftest.js
 ```
 
-404 checks, no browser and no dependencies. Real decks are never opened for testing, because every
+489 checks, no browser and no dependencies. Real decks are never opened for testing, because every
 load writes into his real storage. `decks/_lab/` exists for that, and its two deliberate
 errors are what the deck-error screen is built against.

@@ -295,6 +295,7 @@
     cur = index;
     openBlock = model.cards[cur].block;
     openFold = false;
+    sx = {};
     view = "work";
     if (!quiet) wantFocus = true;
     render();
@@ -821,6 +822,12 @@
 
   var openFold = false;
 
+  // What the simpler view has open on the card he is on, and nothing that outlives the visit:
+  // the request panel, the original beside it, the dropped details, a word note, the pick
+  // mode of «deeper on a word», what the paste box holds and what it last said. The marks and
+  // the versions themselves are his and live in the store; this is only what is unfolded.
+  var sx = {};
+
   // One fold, and it holds both halves of every earlier round: what he wrote and what came
   // back. It replaces two separate blocks that sat in different places and that he could not
   // find at all. Collapsed by default, because he opened the card for what is new on it.
@@ -937,18 +944,45 @@
       // in the `it` host rather than wearing the class itself, or `.it`'s muted grey would
       // beat the colour every link on the page has.
       if (r.u) return r.i ? add(el("span", "it"), linkTo(r)) : linkTo(r);
-      if (!opts || !opts.jump) return el("span", r.i ? "it" : null, r.t);
+      if (!opts || !opts.jump) return wordsInto(el("span", r.i ? "it" : null), r.t, opts);
       // The pointer keeps whatever the run already was: «_all of it in card 29_» is how the
       // author writes one, and an aside that stops being an aside to become a link would be
       // the sentence changing weight under him for saying where something else is.
       var host = el("span", r.i ? "it" : null);
       DeckModel.refSplit(r.t).forEach(function (piece) {
-        add(host, (piece.n && cardRef(piece, opts.jump)) || document.createTextNode(piece.t));
+        add(host, (piece.n && cardRef(piece, opts.jump)) || wordsInto(null, piece.t, opts));
       });
       return host;
     }
     var key = DeckModel.tagKey(r.t);
-    return el("span", key ? "em tg tg-" + key : "em", r.t);
+    if (key) return el("span", "em tg tg-" + key, r.t);
+    return wordsInto(el("span", "em"), r.t, opts);
+  }
+
+  // Plain text, the way it always went in - unless the caller asked for the words to be
+  // markable, which is only ever the answer on a revealed card. Then every word is its own span
+  // he can tap, and the spaces between them stay plain text, so the text itself is
+  // character for character what it was. A token with no letter or digit in it (a dash, an
+  // arrow) is not a word to DeckModel.words() and is not one here either, so the index of a
+  // word on screen is its index in the count the budget is kept in.
+  function wordsInto(host, text, opts) {
+    var w = opts && opts.words;
+    if (!w) {
+      if (!host) return document.createTextNode(text);
+      host.textContent = text;
+      return host;
+    }
+    host = host || el("span");
+    var parts = opts.gloss ? DeckModel.glossSplit(text) : [{ t: text, g: false }];
+    parts.forEach(function (part) {
+      var into = part.g ? add(host, el("span", "gls")) : host;
+      part.t.split(/(\s+)/).forEach(function (chunk) {
+        if (!chunk) return;
+        if (!DeckModel.words(chunk)) { add(into, document.createTextNode(chunk)); return; }
+        add(into, wordSpan(chunk, w));
+      });
+    });
+    return host;
   }
 
   // A link the author wrote as a link. It opens in a new tab, and that is not a habit: a deck
@@ -1091,11 +1125,354 @@
       add(veil, el("div", "lbl", S("card_gate_veil")));
       return veil;
     }
+    var now = DeckModel.simpleNow(card, store.simple(card.id));
+    if (now && !now.over) return simpleView(card, top, now);
     var box = st(el("div", "note none"), "margin-top: " + top + "; padding: 16px 18px;");
-    return add(box, richText(card.answer, null, {
+    // A simpler version that came back longer than the answer is refused, not shown: the
+    // answer stays, and the line over it says why.
+    if (now && now.over) {
+      add(box, st(el("div", "serr none", S("simp_err_long", now.words, S.n(now.words, "words_n"), now.budget)),
+        "margin-bottom: 12px;"));
+    }
+    var w = wordsOf(card, card.answer);
+    return add(box, markable(richText(card.answer, null, {
       seen: function (hash) { return store.wasRead(card.id, hash); },
-      jump: jump
-    }));
+      jump: jump,
+      words: w
+    }), w));
+  }
+
+  // ---- simpler, and never longer ------------------------------------------------------------
+  //
+  // His measured pain: a card of five hundred words, a hundred of them unclear, fifteen
+  // follow-ups, every answer bringing new words he does not know, the card ten times longer,
+  // and card 3 of 60 is where he stops. So on a revealed answer he marks what is unclear - a
+  // tap on a word, or a selection for a whole piece - and asks for a simpler version that is
+  // NEVER longer than what he had. The AI runs outside this static page: the request goes out
+  // through the same copy as the round's form (core/send.js), and the reply comes back either in
+  // the deck file as `simple` on the card or pasted into the box here. Either way the budget is
+  // kept on this side, by counting, and a reply over it is refused rather than shown.
+
+  // The marks on one text. They are kept against the stamp of the text they were made on, so a
+  // simpler version that replaced it, or an answer the author rewrote, strands them instead of
+  // laying them over different words.
+  function simpMarks(card, text) {
+    var rec = store.simple(card.id);
+    var on = DeckModel.stamp(text);
+    var m = rec && rec.marks;
+    return m && m.on === on ? { on: on, w: m.w || [], p: m.p || [] } : { on: on, w: [], p: [] };
+  }
+
+  function wordsOf(card, text) {
+    return { at: 0, card: card, text: text, marks: simpMarks(card, text) };
+  }
+
+  // The box a selection is looked for in: the one markable text on the card.
+  function markable(node, w) {
+    node.classList.add("wbox");
+    node.simpWords = w;
+    return node;
+  }
+
+  // The text on screen in the answer's place: the simpler version when one stands, the answer
+  // otherwise. It is what a request is made from and what its budget is counted on.
+  function shownText(card) {
+    var now = DeckModel.simpleNow(card, store.simple(card.id));
+    return now && !now.over ? now.text : card.answer;
+  }
+
+  function simpSave(id, rec) {
+    var keep = rec && (rec.marks || rec.ask || rec.got || (rec.deep && rec.deep.length));
+    store.simple(id, keep ? rec : null);
+  }
+
+  function putMarks(card, m) {
+    var rec = store.simple(card.id) || {};
+    m.w.sort(function (a, b) { return a.i - b.i; });
+    m.p.sort(function (a, b) { return a.a - b.a; });
+    rec.marks = m.w.length || m.p.length ? m : null;
+    simpSave(card.id, rec);
+  }
+
+  // The word as it goes into the request: the punctuation glued to it is not part of it.
+  function bare(chunk) {
+    var t = String(chunk).replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+    return t || String(chunk);
+  }
+
+  function wordSpan(chunk, w) {
+    var i = w.at++;
+    var inPiece = w.marks.p.some(function (p) { return p.a <= i && i <= p.b; });
+    var marked = !inPiece && w.marks.w.some(function (x) { return x.i === i; });
+    var span = el("span", "w" + (marked ? " wm" : "") + (inPiece ? " wp" : ""), chunk);
+    span.setAttribute("data-i", String(i));
+    span.addEventListener("click", function () { wordTap(w, i, chunk); });
+    return span;
+  }
+
+  // A tap toggles «not clear» on the word; a tap on a word inside a marked piece unmarks the
+  // piece. A click that ends a selection is the selection's, not a tap. In the pick mode of
+  // «deeper on a word» the tap chooses the word instead.
+  function wordTap(w, i, chunk) {
+    var sel = window.getSelection ? window.getSelection() : null;
+    if (sel && String(sel).trim()) return;
+    if (sx.pick) { sx.pick = false; simpAsk(w.card, "deeper", w.text, bare(chunk)); return; }
+    var m = simpMarks(w.card, w.text);
+    var hit = m.p.filter(function (p) { return p.a <= i && i <= p.b; });
+    if (hit.length) m.p = m.p.filter(function (p) { return hit.indexOf(p) < 0; });
+    else if (m.w.some(function (x) { return x.i === i; })) m.w = m.w.filter(function (x) { return x.i !== i; });
+    else m.w.push({ i: i, t: bare(chunk) });
+    putMarks(w.card, m);
+    render();
+  }
+
+  // A selection inside the markable text earns two buttons floating over it: every word in it
+  // is «not clear», or the whole of it is a piece to rewrite. The buttons swallow their own
+  // mousedown, so pressing one does not first throw away the selection it acts on.
+  var selNow = null;
+
+  function selPick() {
+    var sel = window.getSelection ? window.getSelection() : null;
+    if (!sel || !sel.rangeCount || sel.isCollapsed) return null;
+    var range = sel.getRangeAt(0);
+    var host = document.querySelector(".wbox");
+    if (!host || !host.simpWords || !host.contains(range.commonAncestorContainer)) return null;
+    var hit = [].filter.call(host.querySelectorAll(".w"), function (s) { return range.intersectsNode(s); });
+    return hit.length ? { range: range, spans: hit, w: host.simpWords } : null;
+  }
+
+  function selBar() {
+    var old = document.querySelector(".stb");
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    selNow = selPick();
+    if (!selNow) return;
+    var bar = el("div", "stb");
+    [["simp_sel_word", selWords], ["simp_sel_piece", selPiece]].forEach(function (b) {
+      var btn = el("button", null, S(b[0]));
+      btn.type = "button";
+      btn.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      btn.addEventListener("click", b[1]);
+      add(bar, btn);
+    });
+    document.body.appendChild(bar);
+    var r = selNow.range.getBoundingClientRect();
+    var top = r.top - bar.offsetHeight - 8;
+    if (top < 4) top = r.bottom + 8;
+    var left = r.left + r.width / 2 - bar.offsetWidth / 2;
+    left = Math.max(8, Math.min(left, document.documentElement.clientWidth - bar.offsetWidth - 8));
+    bar.style.top = top + "px";
+    bar.style.left = left + "px";
+  }
+
+  function selIndex(span) { return parseInt(span.getAttribute("data-i"), 10); }
+
+  function selWords() {
+    if (!selNow) return;
+    var w = selNow.w, m = simpMarks(w.card, w.text);
+    selNow.spans.forEach(function (span) {
+      var i = selIndex(span);
+      if (m.p.some(function (p) { return p.a <= i && i <= p.b; })) return;
+      if (m.w.some(function (x) { return x.i === i; })) return;
+      m.w.push({ i: i, t: bare(span.textContent) });
+    });
+    selDone(w.card, m);
+  }
+
+  function selPiece() {
+    if (!selNow) return;
+    var w = selNow.w, m = simpMarks(w.card, w.text);
+    var at = selNow.spans.map(selIndex);
+    var a = Math.min.apply(null, at), b = Math.max.apply(null, at);
+    m.w = m.w.filter(function (x) { return x.i < a || x.i > b; });
+    m.p = m.p.filter(function (p) { return p.b < a || p.a > b; });
+    m.p.push({ a: a, b: b, t: selNow.spans.map(function (s) { return s.textContent; }).join(" ") });
+    selDone(w.card, m);
+  }
+
+  function selDone(card, m) {
+    selNow = null;
+    var sel = window.getSelection ? window.getSelection() : null;
+    if (sel) sel.removeAllRanges();
+    putMarks(card, m);
+    render();
+  }
+
+  // Building the request opens the panel it is read in, and records what it was built on: the
+  // budget a pasted reply is judged against is the one this request printed.
+  function simpAsk(card, kind, text, word) {
+    var rec = store.simple(card.id) || {};
+    rec.ask = { kind: kind, base: DeckModel.stamp(card.answer), on: DeckModel.stamp(text),
+      budget: kind === "deeper" ? DeckModel.DEEP_MAX : DeckModel.words(text), word: word || "" };
+    simpSave(card.id, rec);
+    sx.open = { id: card.id, kind: kind, text: text, word: word || "" };
+    sx.said = "";
+    sx.copied = "";
+    sx.pick = false;
+    render();
+  }
+
+  // The bar, once anything is marked: how much, how long the text is now, and the one action.
+  function simpBar(card) {
+    if (!card.answer || gateClosed(card) || (sx.open && sx.open.id === card.id)) return null;
+    var text = shownText(card);
+    var m = simpMarks(card, text);
+    if (!m.w.length && !m.p.length) return null;
+    var parts = [];
+    if (m.w.length) parts.push(m.w.length + " " + S.n(m.w.length, "words_n"));
+    if (m.p.length) parts.push(m.p.length + " " + S.n(m.p.length, "pieces_n"));
+    var n = DeckModel.words(text);
+    var bar = st(el("div", "sbar none"), "margin-top: 14px; padding: 12px 14px;");
+    var row = st(el("div", "fx ac jb"), "gap: 8px;");
+    add(row, el("div", "lg", S("simp_bar", parts.join(", "))),
+      el("div", "lg", S("simp_bar_now", n, S.n(n, "words_n"))));
+    var acts = st(el("div", "fx ac jb"), "margin-top: 10px; gap: 10px;");
+    var reset = el("button", "qbtn", S("simp_reset"));
+    reset.addEventListener("click", function () { putMarks(card, { on: m.on, w: [], p: [] }); render(); });
+    var go = el("button", "btn pri none sgo");
+    add(go, el("div", null, S("simp_go")));
+    go.addEventListener("click", function () { simpAsk(card, "simple", text); });
+    add(acts, reset, go);
+    return add(bar, row, acts);
+  }
+
+  // The request, read before it is copied - the rule the round's form already keeps - and the
+  // box the reply is pasted into.
+  function simpPanel(card) {
+    var o = sx.open;
+    if (!o || o.id !== card.id || !card.answer || gateClosed(card)) return null;
+    var m = simpMarks(card, o.text);
+    var req = DeckSend.simplify(model, card, { kind: o.kind, text: o.text, word: o.word,
+      words: m.w.map(function (x) { return x.t; }), pieces: m.p.map(function (p) { return p.t; }) });
+
+    var box = st(el("div", "note none fx col spanel"), "margin-top: 14px; padding: 15px 18px 16px;");
+    var head = st(el("div", "fx ac jb"), "gap: 12px;");
+    add(head, el("div", "lbl", o.kind === "deeper" ? S("simp_panel_deeper", o.word) : S("simp_panel_simple")),
+      action(S("act_close"), function () { sx.open = null; sx.said = ""; render(); }, true));
+    add(box, head);
+
+    var pre = st(el("div", "tfq fx col none"), "margin-top: 10px; padding: 12px 16px; max-height: 190px;");
+    add(pre, add(el("div", "sc grow nosb msk"), st(el("div", "bd sreq", req.text), "white-space: pre-wrap;")));
+    add(box, pre);
+
+    var row = st(el("div", "fx ac jb"), "margin-top: 10px; gap: 12px;");
+    add(row, el("div", "lg", sx.copied || S("simp_panel_hint")));
+    var take = el("button", "btn pri none scopy");
+    add(take, el("div", null, S("send_copy")));
+    take.addEventListener("click", function () {
+      copy(req.text, function () { sx.copied = S("send_copied", req.text.length); render(); });
+    });
+    add(row, take);
+    add(box, row);
+
+    var paste = st(el("div", "tfq fx col none"), "margin-top: 12px; padding: 10px 14px;");
+    var area = el("textarea", "bd14 spaste");
+    st(area, "height: 64px; border: 0; background: transparent; outline: none; resize: vertical;" +
+      " font: inherit; font-size: 13.5px; line-height: 1.55; color: var(--bd-tx);");
+    area.value = sx.paste || "";
+    area.placeholder = S("simp_paste_ph");
+    area.addEventListener("input", function () { sx.paste = area.value; });
+    add(paste, area);
+    add(box, paste);
+
+    var foot = st(el("div", "fx ac jb"), "margin-top: 10px; gap: 12px;");
+    add(foot, el("div", "serr", sx.said || ""));
+    var put = el("button", "btn sec none sput", S("simp_paste"));
+    put.addEventListener("click", function () { simpPaste(card); });
+    add(foot, put);
+    return add(box, foot);
+  }
+
+  // The reply, checked before anything is kept: the right card, the answer as it is now, and
+  // the budget - a simpler answer with more words than the text it was made from is refused.
+  function simpPaste(card) {
+    var reply = DeckSend.parseReply(sx.paste || "");
+    var base = DeckModel.stamp(card.answer);
+    var rec = store.simple(card.id) || {};
+    var ask = rec.ask && rec.ask.base === base && rec.ask.kind === reply.kind ? rec.ask : null;
+    var budget = ask ? ask.budget : DeckModel.words(shownText(card));
+    var res = DeckSend.check(reply, { card: card.id, base: base, budget: budget });
+    if (!res.ok) { sx.said = res.why; render(); return; }
+    if (reply.kind === "deeper") {
+      rec.deep = (rec.deep || []).filter(function (d) { return d.w !== reply.word; })
+        .concat([{ w: reply.word, t: reply.text, base: base }]);
+      sx.deep = reply.word;
+    } else {
+      rec.got = { text: reply.text, removed: reply.removed, base: base,
+        fileAt: card.simple ? DeckModel.stamp(card.simple.text) : "", at: Date.now() };
+      rec.marks = null;
+    }
+    rec.ask = null;
+    simpSave(card.id, rec);
+    sx.open = null;
+    sx.paste = "";
+    sx.said = "";
+    render();
+  }
+
+  // The simpler version, in the answer's place: how much shorter it is, the text itself with
+  // its glosses muted and its words markable again, the original on request, what was dropped,
+  // the notes on single words, and the way out - which is his own words, in the box he always
+  // writes them in.
+  function simpleView(card, top, now) {
+    var wrap = st(el("div", "fx col none sview"), "margin-top: " + top + ";");
+
+    var len = st(el("div", "fx ac"), "gap: 12px;");
+    var meter = st(el("div", "fx ac none"), "gap: 4px;");
+    add(meter, st(el("div", "smt"), "width: 60px;"),
+      st(el("div", "smt on"), "width: " + Math.max(4, Math.round(now.words / Math.max(1, now.budget) * 60)) + "px;"));
+    add(len, el("div", "lg slen", S("simp_len", now.budget, now.words, S.n(now.words, "words_n"))), meter);
+    add(wrap, len);
+
+    var w = wordsOf(card, now.text);
+    var box = st(el("div", "note none"), "margin-top: 10px; padding: 16px 18px;");
+    add(box, markable(richText(now.text, null, { jump: jump, words: w, gloss: true }), w));
+    add(wrap, box);
+
+    if (sx.orig) {
+      var orig = st(el("div", "note none sorig"), "margin-top: 10px; padding: 14px 18px;");
+      add(wrap, add(orig, richText(card.answer, "bd", { jump: jump })));
+    }
+
+    if (now.removed.length) {
+      var rm = el("button", "qbtn" + (sx.removed ? "" : " ell"),
+        S("simp_removed", now.removed.length, S.n(now.removed.length, "details_n"), now.removed.join("; ")));
+      rm.addEventListener("click", function () { sx.removed = !sx.removed; render(); });
+      add(wrap, st(rm, "margin-top: 10px;"));
+    }
+
+    now.deep.forEach(function (d) {
+      var on = sx.deep === d.w;
+      var row = st(el("div", "fx col none"), "margin-top: 8px;");
+      add(row, action(S("simp_deep_note", d.w), function () { sx.deep = on ? null : d.w; render(); }, on));
+      if (on) add(row, st(el("div", "note none bd", d.t), "margin-top: 6px; padding: 10px 14px;"));
+      add(wrap, row);
+    });
+
+    // One fixed word on the toggle, on or off, like the two under the card: a button that
+    // renames itself is two buttons wearing one.
+    var tools = st(el("div", "fx ac wrp none"), "margin-top: 14px; gap: 16px;");
+    var tg = el("button", "tog c" + (sx.orig ? " on" : ""), S("simp_orig_show"));
+    tg.setAttribute("aria-pressed", sx.orig ? "true" : "false");
+    tg.addEventListener("click", function () { sx.orig = !sx.orig; render(); });
+    var more = el("button", "qbtn", S("simp_more"));
+    more.addEventListener("click", function () { simpAsk(card, "simple", now.text); });
+    var deeper = el("button", "qbtn" + (sx.pick ? " on" : ""), S("simp_deeper"));
+    deeper.addEventListener("click", function () { sx.pick = !sx.pick; render(); });
+    add(tools, tg, more, deeper);
+    add(wrap, tools);
+    if (sx.pick) add(wrap, st(el("div", "lg none", S("simp_pick_hint")), "margin-top: 8px;"));
+
+    // «Enough» is not a new place to write: it is the box he always answers in, and the › beside
+    // it that records and moves on. A card answered some other way simply moves on.
+    var done = st(el("button", "btn pri wide none"), "margin-top: 14px;");
+    add(done, el("div", null, S("simp_done")));
+    done.addEventListener("click", function () {
+      sx = {};
+      if (card.reply.mode === "text") { wantFocus = true; render(); }
+      else record();
+    });
+    add(wrap, done);
+    return wrap;
   }
 
   // ---- what he has already read -------------------------------------------------------------
@@ -1262,6 +1639,8 @@
     var clar = clarBlock(card);
     add(box, clar);
     add(box, answerBlock(card, !!clar));
+    add(box, simpPanel(card));
+    add(box, simpBar(card));
     if (card.reply.mode !== "text" && card.reply.mode !== "none") add(box, pickField(card));
     add(box, pastBlock(card));
     if (card.reply.mode !== "none" && card.reply.mode !== "text") {
@@ -1855,6 +2234,9 @@
     if (isKey(e, "j", "\u043e")) { go(step(1), true); return; }
     if (isKey(e, "k", "\u043b")) { go(step(-1), true); return; }
   });
+
+  // A selection inside the answer is a question about marking it; see selBar().
+  document.addEventListener("selectionchange", function () { if (model) selBar(); });
 
   // ---- a deck the reader brought himself ------------------------------------------------
   //
