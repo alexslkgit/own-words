@@ -47,6 +47,19 @@ A card may also carry a weight, `"w": 1` to `100`. When any card in a deck has o
 stops in the header show the whole deck, only cards weighted 60 and up, or only 85 and up, so
 a short session covers what matters most. A card with no weight is always shown.
 
+## When an answer is too hard to read
+
+Once the answer is shown, tap the words you do not follow, or select a phrase, then press
+"Simpler, not longer". The page builds a request whose word budget is the answer's own length;
+send it to Claude or any chat and paste the reply back. The page refuses a reply with more words
+than the budget, so the card gets clearer without growing. With the plugin, Claude Code also
+writes the simpler version into your `.deck.json` beside the original answer, which it never
+changes. For example, with "existential" and "witness table" marked:
+
+> Before, 30 words: `some` names one concrete type that the compiler knows but hides, while `any` is an existential box resolved at runtime through a witness table, so its calls cannot be specialized.
+>
+> After, 26 words: `some`: one real type the compiler knows, just unnamed. `any`: a box (fits any matching type) opened at run time, so its calls cannot be specialized.
+
 ## Where the deck lives
 
 The link carries the whole deck inside the URL, after `#d=`, compressed with lz-string. A URL
@@ -86,7 +99,7 @@ The site needs nothing installed, so closing the tab is enough.
 
 A modern browser, for the site and for any deck link. The plugin needs Claude Code.
 
-This is one person's tool at version 0.2.0. I use it daily on my own decks; the English strings
+This is one person's tool at version 0.3.0. I use it daily on my own decks; the English strings
 in it are new, so if a line reads oddly, that is why.
 
 If you tried it on something you actually needed to learn, did writing your own answer first

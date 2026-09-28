@@ -1,6 +1,6 @@
 ---
 name: own-words
-description: Build a study deck from a topic or a document and print a link that opens it; use when the user says /own-words, wants flashcards, wants to learn or memorise something, or wants to check what they understood
+description: Build a study deck from a topic or a document and print a link that opens it; use when the user says /own-words, wants flashcards, wants to learn or memorise something, or wants to check what they understood. Also answers a message that starts with [own-words simplify] or [own-words deeper], copied from a card page
 disable-model-invocation: false
 license: MIT
 ---
@@ -27,6 +27,7 @@ substance of the topic and the answers are worth reading.
      "round": 1,
      "title": "What the deck is about",
      "copyPrefix": "Short name",
+     "purpose": "One line on what the deck is for.",
      "gate": true,
      "from": [{ "round": 1, "t": "One sentence on what this round is for." }],
      "marks": [
@@ -67,6 +68,8 @@ substance of the topic and the answers are worth reading.
      twice to mark the load-bearing term or claim. Use plain paragraphs: the block tokens
      `Diagram:`, `Flow:`, `Tree:` and `_aside_` are available for a card that genuinely
      needs one, each on its own line, but most cards need none of them.
+   - `purpose` is optional: one line on what the reader needs the deck for. A request for a
+     simpler answer carries it, and it decides which details may be dropped.
    - Leave `round` at 1.
    - Prefer facts the reader can check over opinion or paraphrase.
 
@@ -82,6 +85,66 @@ substance of the topic and the answers are worth reading.
    non-zero exit on failure, fix the deck and run it again rather than guessing.
 
 5. **Reply with the link and the card count, nothing else.**
+
+## A request for a simpler answer
+
+A message whose first line is `[own-words simplify]` or `[own-words deeper]` was copied from a
+card page after the reader marked what he did not understand. It is not a new topic: build no
+deck. The fields under that line are `deck:` (the deck key), `card:` (the card id), `base:`
+(the stamp of the card's answer), and `budget:` for a simpler answer or `word:` for a note on
+one word.
+
+1. **Write the result by these rules,** the same ones the request carries:
+   1. At most `budget` words, hard. Aim for about two thirds of it.
+   2. Every marked word: replace it with plain words, or keep it and add a gloss in
+      parentheses of at most 6 words.
+   3. No new unexplained terms: every technical term in the output either appears unmarked in
+      the original or carries a gloss.
+   4. Every marked piece: rewrite it in plain words, same facts.
+   5. Drop details the deck's purpose does not need, and list them in `removed` as short
+      phrases.
+   6. Never add a fact that is not in the original; keep the card's core claim and any
+      one-line rule.
+   7. "Simpler still" is the same request made from the current simpler text, with its word
+      count as the budget.
+   8. "Deeper on a word" explains one word in at most 40 words. It is a note shown under the
+      answer and never merged into it: do not rewrite the answer.
+
+2. **Count before you answer.** A word is a whitespace-separated token with at least one letter
+   or digit in it. The page counts the same way and refuses anything over the budget, so a
+   reply one word over is a wasted round trip.
+
+3. **Write it into the deck file when you have it.** Find the `.deck.json` whose `key` is the
+   request's `deck:`. On the card with the request's `card:` id, set
+
+   ```json
+   "simple": { "text": "the simpler answer", "removed": ["a dropped detail"], "base": "copied from the request" }
+   ```
+
+   beside `a`, and never change `a` or any other field. Copy `base` exactly as the request
+   gives it, also for "simpler still": it is the stamp of the answer, and the page ignores a
+   version whose base no longer matches the answer on the card. A note on a word goes into
+   `simple.deep` as `{ "w": "the word", "t": "the note" }`, replacing a note on the same word;
+   a card with no `simple` yet has nowhere to hold one, so leave the file alone and give the
+   block only. Then run the link script again and give the new link: opening it replaces the
+   copy kept in the browser and keeps the reader's answers.
+
+4. **Always end the reply with the fenced block** the request shows, filled in, even after
+   writing the file, because the reader may be on a page that was opened from a different copy:
+
+   ````
+   ```own-words
+   kind: simple
+   card: s1
+   base: copied from the request
+   text:
+   the simpler answer, a blank line between paragraphs
+   removed:
+   - a dropped detail
+   ```
+   ````
+
+   A note on a word has `kind: deeper`, a `word:` line after `base:`, and no `removed:`.
 
 ## Quality bar
 
